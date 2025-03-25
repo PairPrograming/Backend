@@ -49,6 +49,18 @@ const postSalonController = async (data) => {
     }
 }
 
+const putSalonController = async (id, data) =>{
+    try {
+        const [updateRows] = await Salones.update(data, {where: {Id: id}});
+        if(updateRows === 0){
+            throw new Error('No se encontro el salon o no hubo cambios');
+        }
+        return {success: true, message: 'Informacion actualizada correctamente'};
+    } catch (error) {
+        throw new Error(`Error al actualizar la información del salon, ${error.message}`);
+    }
+}
+
 const postUserSalonController = async (userId, salonId) => {
     try {
         const user = await Users.findByPk(userId);
@@ -71,5 +83,6 @@ module.exports = {
     getGridSalonesController,
     getSalonController,
     postSalonController,
+    putSalonController,
     postUserSalonController
 }
