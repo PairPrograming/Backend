@@ -5,7 +5,7 @@ const createUserController = async (data) => {
     const defaultRol = await Rols.findOne({where: {rol:"Graduado"}});
     data.roleId = defaultRol.id;
     const [existingUser, created] = await Users.findOrCreate({
-      where: { dni: data.dni }, // Or email or usuario
+      where: { email: data.email }, // Or email or usuario
       defaults: data,
     });
     if (!created) {
