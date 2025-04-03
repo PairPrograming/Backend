@@ -11,10 +11,13 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             allowNull:false
         },
-
         fecha: {
             type: DataTypes.DATE,
-            allowNull:false
+            allowNull: false,
+            validate: {
+                isDate: true,
+                isAfter: new Date().toISOString()
+            }
         },
         duracion: {
             type: DataTypes.INTEGER,

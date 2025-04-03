@@ -5,18 +5,6 @@ const createUsserHandler = async (req, res) => {
     const { dni, auth0Id, nombre, apellido, direccion, email, whatsapp, usuario, password, utypeId } = req.body;
     //const roldefault = 1;
     try {
-        if(!dni){
-            return res.status(400).json({
-                error: "Solicitud incorrecta",
-                message: "El DNI no puede estar vacio.",
-            });
-        }
-        if(!dni || !nombre || !apellido || !direccion || !email || !whatsapp || !usuario || !password) {
-            return res.status(400).json({
-                error: "Solicitud incorrecta",
-                message: "Todos los campos son obligatorios.",
-            });
-        }
         const userData = {
             auth0Id,
             dni,
