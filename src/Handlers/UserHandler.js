@@ -1,4 +1,7 @@
-const { createUserController, obtenerUserController, obtenerUserGridController, updateUserController } = require('../Controllers/UserController')
+const { createUserController, obtenerUserController, 
+    obtenerUserGridController, updateUserController,
+    changePasswordController
+ } = require('../Controllers/UserController')
 //const { hash_password } = require('../utils/hash_passwords');
 
 const createUsserHandler = async (req, res) => {
@@ -59,9 +62,21 @@ const updateUserHandler = async (req, res) =>{
         return res.status(400).json({message: error.message});
     }
 }
+
+const changePasswordHandler = async (req, res) => {
+    const {id} = req.params;
+    const data = req.body;
+    try {
+        await changePasswordController(id, data);
+        return res.status(201).json("Contraseña Actualizada");
+    } catch (error) {
+        return res.status(400).json({message: error.message});
+    }
+}
 module.exports= {
     createUsserHandler,
     obtenerUserHandler,
     obtenerUserGridHandler,
-    updateUserHandler
+    updateUserHandler,
+    changePasswordHandler
 }

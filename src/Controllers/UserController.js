@@ -1,4 +1,5 @@
 const { Users, Rols, User_Type } = require("../DbIndex");
+const bcrypt = require('bcrypt');
 
 const createUserController = async (data) => {
   try {
@@ -66,9 +67,28 @@ const updateUserController = async (id, data) => {
     throw new Error(`Error al actualizar la información del usuario, ${error.message}`);
   }
 }
+const changePasswordController = async(id, data)  => {
+  try {
+    const {currentpassword, newpassword} = data
+    const user = await Users.findByPk(id, {
+      attributes: ['id', 'password']
+    });
+    console.log(user)
+    const match = await bcrypt.compare(currentpassword, user.password);
+    if(!match){
+      throw new Error('La contraseña actual es incorrecta');
+    }
+    user.password = newpassword;
+    await user.save();
+    return { success: true, message: "Contraseña actualizada"};
+  } catch (error) {
+    throw new Error(`Error al actualizar la contraseña del usuario, ${error.message}`);
+  }
+}
 module.exports = {
   createUserController,
   obtenerUserController,
   obtenerUserGridController,
-  updateUserController
+  updateUserController,
+  changePasswordController
 }
