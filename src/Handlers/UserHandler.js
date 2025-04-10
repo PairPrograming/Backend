@@ -3,7 +3,10 @@ const {
   obtenerUserController,
   obtenerUserGridController,
   updateUserController,
-  verificarUsuarioController, // <-- NUEVO
+  verificarUsuarioController,
+  deleteUserController,
+  softDeleteUserController,
+  obtenerUsuariosController, // <-- Nueva función del controlador
 } = require("../Controllers/UserController");
 
 const createUsserHandler = async (req, res) => {
@@ -45,7 +48,7 @@ const obtenerUserHandler = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         error: "Solicitud incorrecta",
-        message: "El Identificador no puede estar vacio.",
+        message: "El Identificador no puede estar vacío.",
       });
     }
     const user = await obtenerUserController(id);
@@ -65,18 +68,20 @@ const obtenerUserGridHandler = async (req, res) => {
 };
 
 const updateUserHandler = async (req, res) => {
-  const id = req.params;
-  const { nombre, apellido, direccion, email, whatsapp } = req.body;
-  const data = { nombre, apellido, direccion, email, whatsapp };
+  const { id } = req.params;
+  const { nombre, apellido, direccion, email, whatsapp, usuario, dni } =
+    req.body;
+
+  const data = { nombre, apellido, direccion, email, whatsapp, usuario, dni };
+
   try {
     await updateUserController(id, data);
-    return res.status(201).json("Modificacion Exitosa");
+    return res.status(200).json({ message: "Modificación exitosa" });
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
 };
 
-// NUEVO HANDLER
 const verificarUsuarioHandler = async (req, res) => {
   const { email, usuario, dni } = req.body;
 
@@ -101,10 +106,65 @@ const verificarUsuarioHandler = async (req, res) => {
   }
 };
 
+const deleteUserHandler = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await deleteUserController(id);
+    return res.status(200).json({ message: "Usuario eliminado correctamente" });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+const softDeleteUserHandler = async (req, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body; // Aceptamos el parámetro isActive (true o false)
+
+  if (isActive === undefined) {
+    return res
+      .status(400)
+      .json({ message: "El parámetro 'isActive' es obligatorio" });
+  }
+
+  try {
+    await softDeleteUserController(id, isActive); // Pasamos el parámetro isActive
+    return res.status(200).json({
+      message: `Usuario marcado como ${isActive ? "activo" : "inactivo"}`,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+// NUEVO HANDLER
+const obtenerUsuariosHandler = async (req, res) => {
+  const { status } = req.query; // Filtrar por "status" (activo/inactivo)
+
+  try {
+    // Determinamos el valor del filtro para isActive
+    let isActive;
+    if (status === "true") {
+      isActive = true; // Solo usuarios activos
+    } else if (status === "false") {
+      isActive = false; // Solo usuarios inactivos
+    }
+
+    const usuarios = await obtenerUsuariosController(isActive);
+
+    return res.status(200).json(usuarios);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createUsserHandler,
   obtenerUserHandler,
   obtenerUserGridHandler,
   updateUserHandler,
-  verificarUsuarioHandler, // <-- EXPORTA
+  verificarUsuarioHandler,
+  deleteUserHandler,
+  softDeleteUserHandler,
+  obtenerUsuariosHandler, // <-- Exportamos la nueva función de obtener usuarios
 };

@@ -48,7 +48,7 @@ const obtenerUserController = async (id) => {
 const obtenerUserGridController = async () => {
   try {
     const grid = await Users.findAll({
-      attributes: ["usuario", "nombre", "apellido", "email"],
+      attributes: ["id", "usuario", "nombre", "apellido", "email"],
       include: {
         model: Rols,
         attributes: ["rol"],
@@ -57,13 +57,13 @@ const obtenerUserGridController = async () => {
     });
     return grid;
   } catch (error) {
-    throw new Error(`Error al obtener el usuario: ${error.message}`);
+    throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
 
 const updateUserController = async (id, data) => {
   try {
-    const [updatedRows] = await Users.update(data, { where: id });
+    const [updatedRows] = await Users.update(data, { where: { id } });
 
     if (updatedRows === 0) {
       throw new Error(`No se encontró el usuario o no hubo cambios`);
@@ -77,7 +77,6 @@ const updateUserController = async (id, data) => {
   }
 };
 
-// NUEVO CONTROLLER
 const verificarUsuarioController = async ({ email, usuario, dni }) => {
   const whereClause = {};
   if (email) whereClause.email = email;
@@ -92,10 +91,68 @@ const verificarUsuarioController = async ({ email, usuario, dni }) => {
   return user;
 };
 
+const deleteUserController = async (id) => {
+  try {
+    const user = await Users.findByPk(id);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    await user.destroy();
+
+    return { success: true, message: "Usuario eliminado correctamente" };
+  } catch (error) {
+    throw new Error(`Error al eliminar el usuario: ${error.message}`);
+  }
+};
+const softDeleteUserController = async (id, isActive) => {
+  try {
+    const user = await Users.findByPk(id);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    user.isActive = isActive; // Aquí se actualiza según el parámetro isActive
+    await user.save();
+
+    return {
+      success: true,
+      message: `Usuario marcado como ${isActive ? "activo" : "inactivo"}`,
+    };
+  } catch (error) {
+    throw new Error(
+      `Error al actualizar el estado de usuario: ${error.message}`
+    );
+  }
+};
+
+// NUEVO CONTROLLER
+const obtenerUsuariosController = async (isActive) => {
+  try {
+    let whereClause = {};
+
+    if (isActive !== undefined) {
+      whereClause.isActive = isActive; // Filtrar por estado de actividad (activo/inactivo)
+    }
+
+    const users = await Users.findAll({
+      where: whereClause,
+      attributes: ["id", "nombre", "apellido", "email", "isActive"],
+    });
+
+    return users;
+  } catch (error) {
+    throw new Error(`Error al obtener los usuarios: ${error.message}`);
+  }
+};
+
 module.exports = {
   createUserController,
   obtenerUserController,
   obtenerUserGridController,
   updateUserController,
-  verificarUsuarioController, // <-- EXPORTA
+  verificarUsuarioController,
+  deleteUserController,
+  softDeleteUserController,
+  obtenerUsuariosController, // <-- Exportamos la nueva función de obtener usuarios
 };
