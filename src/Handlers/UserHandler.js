@@ -6,7 +6,7 @@ const {
   verificarUsuarioController,
   deleteUserController,
   softDeleteUserController,
-  obtenerUsuariosController, // <-- Nueva función del controlador
+  obtenerUsuariosController,
 } = require("../Controllers/UserController");
 
 const createUsserHandler = async (req, res) => {
@@ -37,6 +37,43 @@ const createUsserHandler = async (req, res) => {
     };
     await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+// NUEVO HANDLER PARA ADMIN
+const crearUsuarioAdminHandler = async (req, res) => {
+  const {
+    dni,
+    auth0Id,
+    nombre,
+    apellido,
+    direccion,
+    email,
+    whatsapp,
+    usuario,
+    password,
+    utypeId,
+    roleId,
+  } = req.body;
+
+  try {
+    const userData = {
+      auth0Id,
+      dni,
+      nombre,
+      apellido,
+      direccion,
+      email,
+      whatsapp,
+      usuario,
+      password,
+      utypeId,
+      roleId,
+    };
+    await createUserController(userData);
+    return res.status(201).json({ message: "Usuario creado por admin" });
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }
@@ -119,7 +156,7 @@ const deleteUserHandler = async (req, res) => {
 
 const softDeleteUserHandler = async (req, res) => {
   const { id } = req.params;
-  const { isActive } = req.body; // Aceptamos el parámetro isActive (true o false)
+  const { isActive } = req.body;
 
   if (isActive === undefined) {
     return res
@@ -128,7 +165,7 @@ const softDeleteUserHandler = async (req, res) => {
   }
 
   try {
-    await softDeleteUserController(id, isActive); // Pasamos el parámetro isActive
+    await softDeleteUserController(id, isActive);
     return res.status(200).json({
       message: `Usuario marcado como ${isActive ? "activo" : "inactivo"}`,
     });
@@ -137,21 +174,15 @@ const softDeleteUserHandler = async (req, res) => {
   }
 };
 
-// NUEVO HANDLER
 const obtenerUsuariosHandler = async (req, res) => {
-  const { status } = req.query; // Filtrar por "status" (activo/inactivo)
+  const { status } = req.query;
 
   try {
-    // Determinamos el valor del filtro para isActive
     let isActive;
-    if (status === "true") {
-      isActive = true; // Solo usuarios activos
-    } else if (status === "false") {
-      isActive = false; // Solo usuarios inactivos
-    }
+    if (status === "true") isActive = true;
+    else if (status === "false") isActive = false;
 
     const usuarios = await obtenerUsuariosController(isActive);
-
     return res.status(200).json(usuarios);
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -160,11 +191,12 @@ const obtenerUsuariosHandler = async (req, res) => {
 
 module.exports = {
   createUsserHandler,
+  crearUsuarioAdminHandler,
   obtenerUserHandler,
   obtenerUserGridHandler,
   updateUserHandler,
   verificarUsuarioHandler,
   deleteUserHandler,
   softDeleteUserHandler,
-  obtenerUsuariosHandler, // <-- Exportamos la nueva función de obtener usuarios
+  obtenerUsuariosHandler,
 };

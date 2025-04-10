@@ -2,8 +2,10 @@ const { Users, Rols, User_Type } = require("../DbIndex");
 
 const createUserController = async (data) => {
   try {
-    const defaultRol = await Rols.findOne({ where: { rol: "Graduado" } });
-    data.roleId = defaultRol.id;
+    if (!data.roleId) {
+      const defaultRol = await Rols.findOne({ where: { rol: "Graduado" } });
+      data.roleId = defaultRol.id;
+    }
 
     const [existingUser, created] = await Users.findOrCreate({
       where: { email: data.email },
@@ -105,6 +107,7 @@ const deleteUserController = async (id) => {
     throw new Error(`Error al eliminar el usuario: ${error.message}`);
   }
 };
+
 const softDeleteUserController = async (id, isActive) => {
   try {
     const user = await Users.findByPk(id);
@@ -112,7 +115,7 @@ const softDeleteUserController = async (id, isActive) => {
       throw new Error("Usuario no encontrado");
     }
 
-    user.isActive = isActive; // Aquí se actualiza según el parámetro isActive
+    user.isActive = isActive;
     await user.save();
 
     return {
@@ -126,13 +129,12 @@ const softDeleteUserController = async (id, isActive) => {
   }
 };
 
-// NUEVO CONTROLLER
 const obtenerUsuariosController = async (isActive) => {
   try {
     let whereClause = {};
 
     if (isActive !== undefined) {
-      whereClause.isActive = isActive; // Filtrar por estado de actividad (activo/inactivo)
+      whereClause.isActive = isActive;
     }
 
     const users = await Users.findAll({
@@ -154,5 +156,5 @@ module.exports = {
   verificarUsuarioController,
   deleteUserController,
   softDeleteUserController,
-  obtenerUsuariosController, // <-- Exportamos la nueva función de obtener usuarios
+  obtenerUsuariosController,
 };
