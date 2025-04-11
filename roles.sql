@@ -1,4 +1,4 @@
----CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 INSERT INTO public."Rols" (id, rol, status) VALUES 
   (gen_random_uuid(), 'SuperAdministrador', true),
   (gen_random_uuid(), 'Administrador', true),
