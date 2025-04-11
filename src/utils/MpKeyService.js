@@ -10,12 +10,11 @@ const getTMp = async(id) => {
             throw new Error('Salón no encontrado');
         }
 
-        // Devuelve solo el dato de mercadopago
-        return { mercadopago: salon.Mercadopago };
+        return salon.Mercadopago;
     } catch (error) {
         throw new Error(`Error al procesar la solicitud: ${error.message}`);
     }
-}
+};
 
 module.exports = {
     getTMp
