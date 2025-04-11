@@ -1,9 +1,9 @@
-const { Users, Rols, User_Type } = require("../DbIndex");
+const { Users, Rols } = require("../DbIndex");
 const bcrypt = require("bcrypt");
 
 const createUserController = async (data) => {
   try {
-    const [existingUser, created] = await Users.findOrCreate({
+    const [created] = await Users.findOrCreate({
       where: { email: data.email },
       defaults: data,
     });
@@ -131,7 +131,7 @@ const obtenerUsuariosController = async (isActive) => {
 
     const users = await Users.findAll({
       where: whereClause,
-      attributes: ["id", "nombre", "apellido", "email", "isActive"],
+      attributes: ["id", "nombre", "apellido", "email", "isActive", "usuario"],
     });
 
     return users;
