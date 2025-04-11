@@ -1,4 +1,4 @@
-const { Router } = require("express");
+/*const { Router } = require("express");
 const {
     paymentCreate
 } = require('../utils/servicePayment')
@@ -6,4 +6,4 @@ const routeServices = Router();
 
 routeServices.post("/", paymentCreate);
 
-module.exports = routeServices;
+module.exports = routeServices;*/

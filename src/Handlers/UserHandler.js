@@ -21,7 +21,6 @@ const createUsserHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
-    utypeId,
   } = req.body;
   try {
     const userData = {
@@ -34,7 +33,6 @@ const createUsserHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      utypeId,
     };
     await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
@@ -54,8 +52,6 @@ const crearUsuarioAdminHandler = async (req, res) => {
     email,
     whatsapp,
     usuario,
-    password,
-    utypeId,
     roleId,
   } = req.body;
 
@@ -70,7 +66,6 @@ const crearUsuarioAdminHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      utypeId,
       roleId,
     };
     await createUserController(userData);

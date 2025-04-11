@@ -49,7 +49,6 @@ console.log(sequelize.models);
 const {
   Users,
   Rols,
-  User_Type,
   Invitados,
   Salones,
   Eventos,
@@ -61,16 +60,6 @@ const {
 Rols.hasMany(Users, { foreignKey: "roleId" });
 Users.belongsTo(Rols, { foreignKey: "roleId" });
 
-// Usuario / Tipos
-User_Type.hasMany(Users, { foreignKey: "utypeId" });
-Users.belongsTo(User_Type, { foreignKey: "utypeId", allowNull: false });
-
-// Salones / Users
-Salones.belongsToMany(Users, {
-  through: "UsersSalones",
-  foreignKey: "salonId",
-});
-Users.belongsToMany(Salones, { through: "UsersSalones", foreignKey: "userId" });
 
 // Usuario / Punto de venta:
 Users.belongsToMany(Punto_de_venta, {

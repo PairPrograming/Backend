@@ -33,10 +33,6 @@ const obtenerUserController = async (id) => {
         "whatsapp",
         "usuario",
       ],
-      include: {
-        model: User_Type,
-        attributes: ["usertype"],
-      },
       raw: true,
     });
 

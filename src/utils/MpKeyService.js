@@ -1,3 +1,4 @@
+const mercadopago = require('mercadopago');
 const { Salones } = require('../DbIndex');
 
 const getTMp = async(id) => {
@@ -16,6 +17,24 @@ const getTMp = async(id) => {
     }
 };
 
-module.exports = {
-    getTMp
-}
+// Función para configurar MercadoPago con el token del salón
+const configureMercadoPago = async (salonId) => {
+    try {
+        const accessToken = await getTMp(salonId);
+        
+        // Configura MercadoPago con el token obtenido
+        mercadopago.configure({
+            access_token: accessToken
+        });
+        
+        return true; // Configuración exitosa
+    } catch (error) {
+        console.error('Error al configurar MercadoPago:', error.message);
+        return false; // Configuración fallida
+    }
+};
+
+module.exports = { 
+    getTMp,
+    configureMercadoPago
+};

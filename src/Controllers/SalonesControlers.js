@@ -61,28 +61,9 @@ const putSalonController = async (id, data) =>{
     }
 }
 
-const postUserSalonController = async (userId, salonId) => {
-    try {
-        const user = await Users.findByPk(userId);
-        const salon = await Salones.findByPk(salonId);
-        const rol = await Rols.findByPk(user.roleId);
-        if (!user || !salon) {
-            throw new Error(`Usuario o salón no encontrado}`);
-        }
-        if(rol.rol === 'Vendedor'){
-            await salon.addUser(user);
-            return { success: true, message: 'Usuario agregado exitosamente al salón' };
-        }else{
-            throw new Error(`Solo puedes agregar usuarios con el rol de Vendedor`);
-        }
-    } catch (error) {
-        throw new Error(`Error al agregar el usuario al salón: ${error.message}`);
-    }
-}
 module.exports = {
     getGridSalonesController,
     getSalonController,
     postSalonController,
-    putSalonController,
-    postUserSalonController
+    putSalonController
 }

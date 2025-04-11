@@ -1,5 +1,5 @@
 const { getGridSalonesController, getSalonController, putSalonController,
-     postSalonController, postUserSalonController
+     postSalonController
   } = require('../Controllers/SalonesControlers');
 
 const getGridSalonesHandler = async(req, res) => {
@@ -43,19 +43,9 @@ const putSalonHandler = async (req, res) => {
     }
 }
 
-const postUserSalonHandler = async (req, res) => {
-    const {userId, salonId} = req.body;
-    try {
-        const result = await postUserSalonController(userId, salonId);
-        return res.status(201).json(result);
-    } catch (error) {
-        return res.status(400).json({message: error.message});
-    }
-}
 module.exports = {
     getGridSalonesHandler,
     getSalonHandler,
     postSalonHandler,
     putSalonHandler,
-    postUserSalonHandler
 }
