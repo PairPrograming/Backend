@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const {
-  createUsserHandler,
+  createUserHandler,
   crearUsuarioAdminHandler,
   obtenerUserHandler,
   obtenerUserGridHandler,
@@ -9,12 +9,12 @@ const {
   deleteUserHandler,
   softDeleteUserHandler,
   obtenerUsuariosHandler,
-  changePasswordHandler
+  changePasswordHandler,
 } = require("../Handlers/UserHandler");
 
 const routeUsers = Router();
 
-routeUsers.post("/register", createUsserHandler);
+routeUsers.post("/register", createUserHandler);
 routeUsers.post("/create-user", crearUsuarioAdminHandler); // NUEVA RUTA
 routeUsers.get("/perfil/:id", obtenerUserHandler);
 routeUsers.get("/grid", obtenerUserGridHandler);
@@ -23,6 +23,6 @@ routeUsers.post("/verificar", verificarUsuarioHandler);
 routeUsers.delete("/delete/:id", deleteUserHandler);
 routeUsers.put("/soft-delete/:id", softDeleteUserHandler);
 routeUsers.get("/usuarios", obtenerUsuariosHandler);
-routeUsers.put('/changepasword/:id', changePasswordHandler);
+routeUsers.put("/changepasword/:id", changePasswordHandler);
 
 module.exports = routeUsers;

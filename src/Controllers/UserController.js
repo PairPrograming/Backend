@@ -1,13 +1,8 @@
 const { Users, Rols, User_Type } = require("../DbIndex");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 const createUserController = async (data) => {
   try {
-    if (!data.roleId) {
-      const defaultRol = await Rols.findOne({ where: { rol: "Graduado" } });
-      data.roleId = defaultRol.id;
-    }
-
     const [existingUser, created] = await Users.findOrCreate({
       where: { email: data.email },
       defaults: data,
@@ -144,24 +139,26 @@ const obtenerUsuariosController = async (isActive) => {
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
-const changePasswordController = async(id, data)  => {
+const changePasswordController = async (id, data) => {
   try {
-    const {currentpassword, newpassword} = data
+    const { currentpassword, newpassword } = data;
     const user = await Users.findByPk(id, {
-      attributes: ['id', 'password']
+      attributes: ["id", "password"],
     });
-    console.log(user)
+    console.log(user);
     const match = await bcrypt.compare(currentpassword, user.password);
-    if(!match){
-      throw new Error('La contraseña actual es incorrecta');
+    if (!match) {
+      throw new Error("La contraseña actual es incorrecta");
     }
     user.password = newpassword;
     await user.save();
-    return { success: true, message: "Contraseña actualizada"};
+    return { success: true, message: "Contraseña actualizada" };
   } catch (error) {
-    throw new Error(`Error al actualizar la contraseña del usuario, ${error.message}`);
+    throw new Error(
+      `Error al actualizar la contraseña del usuario, ${error.message}`
+    );
   }
-}
+};
 module.exports = {
   createUserController,
   obtenerUserController,
@@ -171,5 +168,5 @@ module.exports = {
   deleteUserController,
   softDeleteUserController,
   obtenerUsuariosController,
-  changePasswordController
+  changePasswordController,
 };
