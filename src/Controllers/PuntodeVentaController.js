@@ -22,21 +22,66 @@ const createPuntoDeVentaController = async (data) => {
 
 const putPuntoDeVentaController = async (id, data) => {
   try {
-    const [updatedRows] = await Punto_de_venta.update(data, { where: { id } });
-    if (updatedRows === 0) {
-      throw new Error(`No se encontró el punto de venta o no hubo cambios`);
+    // Validar campos requeridos
+    const camposRequeridos = [
+      "razon",
+      "nombre",
+      "direccion",
+      "telefono",
+      "cuit",
+      "email",
+    ];
+    for (const campo of camposRequeridos) {
+      if (!data[campo]) {
+        throw new Error(`El campo ${campo} es requerido`);
+      }
     }
 
-    return { success: true, message: "Actualización exitosa" };
+    // Validar formato CUIT
+    if (!/^\d{2}-\d{8}-\d{1}$/.test(data.cuit)) {
+      throw new Error("El CUIT debe tener el formato 20-12345678-9");
+    }
+
+    // Validar email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      throw new Error("El email no tiene un formato válido");
+    }
+
+    const [updatedRows] = await Punto_de_venta.update(data, {
+      where: { id },
+      returning: true,
+    });
+
+    if (updatedRows === 0) {
+      throw new Error(`No se encontró el punto de venta con ID ${id}`);
+    }
+
+    const puntoActualizado = await Punto_de_venta.findByPk(id);
+
+    return {
+      success: true,
+      message: "Punto de venta actualizado exitosamente",
+      data: puntoActualizado,
+    };
   } catch (error) {
-    throw new Error(` ${error.message}`);
+    console.error("Error en putPuntoDeVentaController:", error);
+    throw new Error(error.message);
   }
 };
 
 const getPuntoDeVentaByIdController = async (id) => {
   try {
     const puntoDeVenta = await Punto_de_venta.findByPk(id, {
-      attributes: ["razon", "cuit", "direccion", "nombre", "email", "telefono"],
+      attributes: [
+        "razon",
+        "cuit",
+        "direccion",
+        "nombre",
+        "email",
+        "telefono",
+        "es_online",
+        "isActive",
+      ],
       include: [
         {
           model: Users,
@@ -48,7 +93,6 @@ const getPuntoDeVentaByIdController = async (id) => {
     if (!puntoDeVenta) {
       throw new Error(`Punto de venta no encontrado`);
     }
-
     return { success: true, data: puntoDeVenta };
   } catch (error) {
     throw new Error(`Error al obtener el punto de venta: ${error.message}`);
@@ -67,6 +111,7 @@ const getAllPuntosDeVentaController = async () => {
         "cuit",
         "email",
         "es_online",
+        "isActive",
       ],
       include: [
         {
@@ -97,7 +142,6 @@ const addUserToPuntoDeVenta = async (userId, puntoId) => {
     if (!created) {
       throw new Error("El usuario ya está asociado a este punto de venta");
     }
-
     return {
       success: true,
       message: "Usuario agregado al punto de venta exitosamente",
@@ -111,13 +155,10 @@ const addUserToPuntoDeVenta = async (userId, puntoId) => {
 
 const deletePuntoDeVentaController = async (id) => {
   const punto = await Punto_de_venta.findByPk(id);
-
   if (!punto) {
     throw new Error("Punto de venta no encontrado");
   }
-
   await punto.destroy();
-
   return { message: "Punto de venta eliminado físicamente con éxito" };
 };
 
@@ -128,19 +169,27 @@ const softDeletePuntoDeVentaController = async (id, isActive) => {
       throw new Error("Punto de venta no encontrado");
     }
 
-    puntoDeVenta.isActive = isActive;
-    await puntoDeVenta.save();
+    const [updatedRows] = await Punto_de_venta.update(
+      { isActive },
+      { where: { id } }
+    );
+
+    if (updatedRows === 0) {
+      throw new Error("No se pudo actualizar el estado del punto de venta");
+    }
+
+    const puntoActualizado = await Punto_de_venta.findByPk(id);
 
     return {
       success: true,
-      message: `Punto de venta marcado como ${
-        isActive ? "activo" : "inactivo"
-      }`,
+      message: `Punto de venta ${
+        isActive ? "activado" : "desactivado"
+      } correctamente`,
+      data: puntoActualizado,
     };
   } catch (error) {
-    throw new Error(
-      `Error al actualizar el estado del punto de venta: ${error.message}`
-    );
+    console.error("Error en softDeletePuntoDeVentaController:", error);
+    throw new Error(`Error al actualizar el estado: ${error.message}`);
   }
 };
 

@@ -5,6 +5,7 @@ const {
   addUserToPuntoDeVenta,
   getAllPuntosDeVentaController,
   deletePuntoDeVentaController,
+  softDeletePuntoDeVentaController,
 } = require("../Controllers/PuntodeVentaController");
 
 const createPuntoDeVentaHandler = async (req, res) => {
@@ -29,29 +30,25 @@ const putPuntoDeVentaHandler = async (req, res) => {
     const result = await putPuntoDeVentaController(id, data);
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: `Error interno del servidor: ${error.message}`,
+      message: error.message,
     });
   }
 };
 
 const getPuntoDeVentaByIdHandler = async (req, res) => {
   const { id } = req.params;
-
   if (!id) {
     return res
       .status(400)
       .json({ success: false, message: "ID es requerido en los parámetros" });
   }
-
   try {
     const result = await getPuntoDeVentaByIdController(id);
-
     if (!result.success) {
       return res.status(404).json(result);
     }
-
     return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({
@@ -85,11 +82,9 @@ const addVendedorPuntoHandler = async (req, res) => {
     });
   }
 };
-// ... otros handlers existentes ...
 
 const deletePuntoDeVentaHandler = async (req, res) => {
   const { id } = req.params;
-
   try {
     await deletePuntoDeVentaController(id);
     return res.status(200).json({
@@ -113,13 +108,8 @@ const softDeletePuntoDeVentaHandler = async (req, res) => {
   }
 
   try {
-    await softDeletePuntoDeVentaController(id, isActive);
-    return res.status(200).json({
-      success: true,
-      message: `Punto de venta marcado como ${
-        isActive ? "activo" : "inactivo"
-      }`,
-    });
+    const result = await softDeletePuntoDeVentaController(id, isActive);
+    return res.status(200).json(result);
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
