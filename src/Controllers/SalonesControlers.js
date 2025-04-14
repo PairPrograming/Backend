@@ -1,4 +1,4 @@
-const { Salones, Users, Eventos } = require('../DbIndex')
+const { Salones, Users, Eventos, SalonesEventos } = require('../DbIndex')
 
 const getGridSalonesController = async () => {
     try {
@@ -61,31 +61,9 @@ const putSalonController = async (id, data) =>{
     }
 }
 
-const addEventoSalonController = async(salonId, eventoId) =>{
-    try {
-        const salon = Salones.findByPk(salonId);
-        const event = Eventos.findByPk(eventoId);
-        if(!salon || !event){
-            throw new Error('No se encontro el evento o el salon');
-        }
-        const [existingSalonEvento, created] = await SalonesEventos.findOrCreate({
-            where: {salonId, eventoId},
-            defaults: {salonId, eventoId}
-        })
-        if(!created){
-            throw new Error('Este evento ya esta asociado a un salon');
-        }
-
-        return { sucess: true, message: "Evento agregado al salon exitosamente"};
-
-    } catch (error) {
-        throw new Error(`Error al agregar el evento al salon: ${error.message}`)
-    }
-}
 module.exports = {
     getGridSalonesController,
     getSalonController,
     postSalonController,
     putSalonController,
-    addEventoSalonController
 }

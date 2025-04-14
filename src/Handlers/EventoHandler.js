@@ -30,7 +30,7 @@ const addEventoHandler = async  (req, res) =>{
         const result = await addEventoController(data);
         return res.status(201).json(result);
     } catch (error) {
-        return res.status(201).json({message: error.message});
+        return res.status(400).json({message: error.message});
     }
 }
 

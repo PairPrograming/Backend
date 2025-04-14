@@ -1,4 +1,4 @@
-const { Salones, Eventos } = require("../DbIndex");
+const { Salones, Eventos, SalonesEventos } = require("../DbIndex");
 
 const getEventosGridController = async () => {
   try {
@@ -29,16 +29,43 @@ const getEventoController = async (id) => {
 
 const addEventoController = async (data) => {
   try {
+    // Extraemos el salonId de los datos
+    const { salonId, ...eventoData } = data;
+    
+    // Verificamos que se haya proporcionado el salonId
+    if (!salonId) {
+      throw new Error("Es necesario seleccionar un salón para el evento");
+    }
+    
+    // Verificamos que el salón exista
+    const salon = await Salones.findByPk(salonId);
+    if (!salon) {
+      throw new Error("No se encontró el salón seleccionado");
+    }
+    
+    // Creamos el evento
     const [existingEvento, created] = await Eventos.findOrCreate({
-      where: { nombre: data.nombre },
-      defaults: data,
+      where: { nombre: eventoData.nombre },
+      defaults: eventoData,
     });
+    
     if (!created) {
       throw new Error("El evento ya existe");
     }
-    return { success: true, message: "Eventoo creado con exito" };
+    
+    // Ahora creamos la asociación en la tabla intermedia
+    await SalonesEventos.create({
+      salonId: salonId,
+      eventoId: existingEvento.id
+    });
+    
+    return { 
+      success: true, 
+      message: "Evento creado y asociado al salón con éxito",
+      evento: existingEvento 
+    };
   } catch (error) {
-    throw new Error(`${error.message}`);
+    throw new Error(`Error al crear el evento: ${error.message}`);
   }
 };
 
