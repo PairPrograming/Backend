@@ -1,4 +1,4 @@
-const { Users, Salones, Eventos } = require("../DbIndex");
+const { Salones, Eventos } = require("../DbIndex");
 
 const getEventosGridController = async () => {
   try {

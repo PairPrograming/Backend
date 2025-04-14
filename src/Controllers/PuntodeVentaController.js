@@ -1,4 +1,4 @@
-const { Punto_de_venta, Users, UsersSalones, UserPuntoVenta } = require('../DbIndex');
+const { Punto_de_venta, Users, Salones, UserPuntoVenta, Rols, SalonPunto } = require('../DbIndex');
 
 const createPuntoDeVentaController = async (data) => {
     try {
@@ -51,30 +51,63 @@ const getPuntoDeVentaByIdController = async (id) => {
 
 const addUserToPuntoDeVenta = async(userId, puntoId) => {
     try {
-        const userInSalon = await UsersSalones.findOne({ where: { userId } });
-        const user = await Users.findByPk(userId);
+        const user = await Users.findByPk(userId, {
+            include: [{
+                model: Rols,
+                attributes: ['rol']
+            }],
+            raw:true
+        });
         const punto = await Punto_de_venta.findByPk(puntoId);
-        if (!userInSalon) {
-            throw new Error(`El usuario debe estar asociado a un salón primero`);
+        if (!user) {
+            throw new Error(`Usuario no encontrado`);
+        }
+        if (!user['Rol.rol'] || user['Rol.rol']?.toLowerCase() !== 'vendedor') {
+            throw new Error(`El usuario debe tener el rol de vendedor para ser asignado a un punto de venta`);
+        }
+        if (!punto) {
+            throw new Error(`Punto de venta no encontrado`);
         }
         const [existingUserPunto, created] = await UserPuntoVenta.findOrCreate({
             where: { userId, puntoId },
             defaults: { userId, puntoId }
         });
         if (!created) {
-            throw new Error('El usuario ya está asociado a este punto de venta');
+            throw new Error('El vendedor ya está asociado a este punto de venta');
         }
 
-        return { success: true, message: 'Usuario agregado al punto de venta exitosamente' };
+        return { success: true, message: 'Vendedor agregado al punto de venta exitosamente' };
 
     } catch (error) {
-        throw new Error(`Error al agregar el usuario al punto de venta: ${error.message}`);
+        throw new Error(`Error al agregar el vendedor al punto de venta: ${error.message}`);
     }
 }
+
+const addSalonPuntoController = async (puntoId, salonId) => {
+    try {   
+    const salon = await Salones.findByPk(salonId);
+    const punto = await Punto_de_venta.findByPk(puntoId);
+    if(!salon || !punto){
+        throw new Error('No se encontro el punto de venta o el salon');
+    }
+    const [existingSalonPunto, created] = await SalonPunto.findOrCreate({
+        where: {salonId, puntoId},
+        defaults: {salonId, puntoId}
+    })
+    if(!created){
+        throw new Error('El Salon ya esta asociado en un punto de venta');
+    }
+    return { success: true, message:'Salon agregado al punto de venta exitosamente'}
+    } catch (error) {
+        throw new Error(`Error al agregar el salon al punto de venta: ${error.message}`);
+    }
+}
+
 module.exports = {
     createPuntoDeVentaController,
     putPuntoDeVentaController,
     getPuntoDeVentaByIdController,
-    addUserToPuntoDeVenta
+    addUserToPuntoDeVenta,
+    addSalonPuntoController
 
 }
