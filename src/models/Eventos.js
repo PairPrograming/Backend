@@ -27,6 +27,14 @@ module.exports = (sequelize) => {
             },
             comment: "Duración en minutos"
         },
+        capacidad: {
+            type: DataTypes.INTEGER,
+            allowNull:false,
+            defaultValue: 1,
+            validate: {
+                min: 1 // Asegura que sea un número positivo
+            }
+        },
         activo: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

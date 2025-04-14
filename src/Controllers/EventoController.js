@@ -42,7 +42,9 @@ const addEventoController = async (data) => {
     if (!salon) {
       throw new Error("No se encontró el salón seleccionado");
     }
-    
+    if(eventoData.capacidad > salon.capacidad){
+      throw new Error('No puedes superar la capacidad del salon')
+    }
     // Creamos el evento
     const [existingEvento, created] = await Eventos.findOrCreate({
       where: { nombre: eventoData.nombre },
