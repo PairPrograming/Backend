@@ -44,7 +44,7 @@ const getTMp = async(id) => {
 const configureMercadoPago = async (salonId) => {
     try {
         const accessToken = await getTMp(salonId);
-        return { accessToken }; // Devolver el token de acceso
+        return new MercadoPagoConfig({ accessToken })
     } catch (error) {
         console.error('Error al configurar MercadoPago:', error.message);
         return false; // Configuración fallida

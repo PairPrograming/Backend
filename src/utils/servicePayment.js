@@ -1,5 +1,5 @@
 const { configureMercadoPago } = require('./MpKeyService');
-const mercadopago = require('mercadopago');
+const { MercadoPagoConfig, Payment } = require('mercadopago');
 
 const procesarPago = async (salonId, datosDelPago, maxIntentos = 3) => {
     let intentos = 0;
@@ -10,9 +10,9 @@ const procesarPago = async (salonId, datosDelPago, maxIntentos = 3) => {
             if (!configurado) {
                 throw new Error('No se pudo configurar MercadoPago para este salón');
             }
-            mercadopago.configurations.setAccessToken(configurado.accessToken);
+            const payment = new Payment(configurado);
             // Procesar el pago
-            const resultado = await mercadopago.payment.create(datosDelPago);
+            const resultado = await payment.create({ body: datosDelPago });
             
             // Registrar resultado exitoso
             console.log(`Pago procesado exitosamente para salón ID: ${salonId}, paymentId: ${resultado.body.id}`);
