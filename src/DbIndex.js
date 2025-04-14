@@ -92,6 +92,7 @@ Eventos.belongsToMany(Salones, {
   foreignKey: "eventoId",
 });
 
+
 // tipo de pago / punto de venta
 Metodo_de_pago.belongsToMany(Punto_de_venta, {
   through: "metodosPago",
