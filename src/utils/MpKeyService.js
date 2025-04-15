@@ -51,7 +51,46 @@ const configureMercadoPago = async (salonId) => {
     }
 };
 
+const verificarAmbiente = async (salonId) => {
+    try {
+        const accessToken = await getTMp(salonId);
+        
+        // Verificar si es un token de prueba o producción
+        const isTestToken = accessToken.includes('TEST-');
+        
+        console.log(`Token de acceso: ${isTestToken ? 'PRUEBA' : 'PRODUCCIÓN'}`);
+        
+        // Obtener la public key
+        const salon = await Salones.findByPk(salonId, {
+            attributes: ['Mercadopago']
+        });
+        
+        if (!salon || !salon.Mercadopago) {
+            throw new Error('Información de MercadoPago no encontrada');
+        }
+        
+        // Verificar si la public key es de prueba o producción
+        const publicKey = salon.Mercadopago.startsWith('APP_USR-') ? salon.Mercadopago : "APP_USR-21a0ffde-28cb-4e15-8ba0-7904446a4ca7";
+        const isTestPublicKey = publicKey.includes('TEST-');
+        
+        console.log(`Public Key: ${isTestPublicKey ? 'PRUEBA' : 'PRODUCCIÓN'}`);
+        
+        // Verificar si hay coincidencia de ambientes
+        if (isTestToken !== isTestPublicKey) {
+            console.error('⚠️ ERROR: Mezcla de ambientes. El Access Token y la Public Key deben ser del mismo ambiente (prueba o producción).');
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error al verificar ambiente:', error);
+        return false;
+    }
+};
+
+// Exporta la función
 module.exports = { 
     getTMp,
-    configureMercadoPago
+    configureMercadoPago,
+    verificarAmbiente
 };
