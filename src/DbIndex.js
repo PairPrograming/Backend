@@ -61,6 +61,16 @@ const {
 Rols.hasMany(Users, { foreignKey: "roleId" });
 Users.belongsTo(Rols, { foreignKey: "roleId" });
 
+// Usuario / Salones (NUEVA RELACIÓN)
+Users.belongsToMany(Salones, {
+  through: "UserSalones",
+  foreignKey: "userId",
+});
+Salones.belongsToMany(Users, {
+  through: "UserSalones",
+  foreignKey: "salonId",
+});
+
 
 // Usuario / Punto de venta:
 Users.belongsToMany(Punto_de_venta, {
