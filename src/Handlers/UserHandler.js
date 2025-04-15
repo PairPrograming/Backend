@@ -7,10 +7,10 @@ const {
   deleteUserController,
   softDeleteUserController,
   obtenerUsuariosController,
-  changePasswordController
+  changePasswordController,
 } = require("../Controllers/UserController");
 
-const createUsserHandler = async (req, res) => {
+const createUserHandler = async (req, res) => {
   const {
     dni,
     auth0Id,
@@ -52,6 +52,7 @@ const crearUsuarioAdminHandler = async (req, res) => {
     email,
     whatsapp,
     usuario,
+    password,
     roleId,
   } = req.body;
 
@@ -185,17 +186,17 @@ const obtenerUsuariosHandler = async (req, res) => {
   }
 };
 const changePasswordHandler = async (req, res) => {
-    const {id} = req.params;
-    const data = req.body;
-    try {
-        await changePasswordController(id, data);
-        return res.status(201).json("Contraseña Actualizada");
-    } catch (error) {
-        return res.status(400).json({message: error.message});
-    }
-}
+  const { id } = req.params;
+  const data = req.body;
+  try {
+    await changePasswordController(id, data);
+    return res.status(201).json("Contraseña Actualizada");
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
 module.exports = {
-  createUsserHandler,
+  createUserHandler,
   crearUsuarioAdminHandler,
   obtenerUserHandler,
   obtenerUserGridHandler,
@@ -204,5 +205,5 @@ module.exports = {
   deleteUserHandler,
   softDeleteUserHandler,
   obtenerUsuariosHandler,
-  changePasswordHandler
+  changePasswordHandler,
 };
