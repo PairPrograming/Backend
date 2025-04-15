@@ -54,6 +54,7 @@ const {
   Eventos,
   Metodo_de_pago,
   Punto_de_venta,
+  Tickets
 } = sequelize.models;
 /* ------------------- Relaciones --------------------- */
 // Usuario / Roles
@@ -81,6 +82,17 @@ Punto_de_venta.belongsToMany(Salones, {
   foreignKey: "puntoId",
 });
 
+// Eventos / Salones
+Salones.belongsToMany(Eventos, {
+  through: "SalonesEventos",
+  foreignKey: "salonId",
+});
+Eventos.belongsToMany(Salones, {
+  through: "SalonesEventos",
+  foreignKey: "eventoId",
+});
+
+
 // tipo de pago / punto de venta
 Metodo_de_pago.belongsToMany(Punto_de_venta, {
   through: "metodosPago",
@@ -91,9 +103,6 @@ Punto_de_venta.belongsToMany(Metodo_de_pago, {
   foreignKey: "puntoId",
 });
 
-// Eventos / Salones
-Salones.hasMany(Eventos, { foreignKey: "salonId" });
-Eventos.belongsTo(Salones, { foreignKey: "salonId" });
 
 // Invitados / Users
 Users.hasMany(Invitados, { foreignKey: "userId" });

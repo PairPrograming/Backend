@@ -12,5 +12,4 @@ routeSalon.get("/:id", getSalonHandler);
 routeSalon.post("/", postSalonHandler);
 routeSalon.put("/:id", putSalonHandler);
 
-
 module.exports = routeSalon;

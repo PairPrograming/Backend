@@ -1,5 +1,5 @@
 const { getGridSalonesController, getSalonController, putSalonController,
-     postSalonController
+     postSalonController, addEventoSalonController
   } = require('../Controllers/SalonesControlers');
 
 const getGridSalonesHandler = async(req, res) => {

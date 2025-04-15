@@ -1,9 +1,9 @@
-/*const { Router } = require("express");
+const { Router } = require("express");
 const {
-    paymentCreate
+    procesarPagoHandler
 } = require('../utils/servicePayment')
 const routeServices = Router();
 
-routeServices.post("/", paymentCreate);
+routeServices.post("/", procesarPagoHandler);
 
-module.exports = routeServices;*/
+module.exports = routeServices;
