@@ -5,9 +5,20 @@ require("dotenv").config();
 
 const { LINKDB } = process.env;
 
-const sequelize = new Sequelize(LINKDB, {
+// const sequelize = new Sequelize(LINKDB, {
+//   logging: false,
+//   native: false,
+// });
+
+const sequelize = new Sequelize(process.env.DATABASE_URL || process.env.LINKDB, {
   logging: false,
   native: false,
+  dialectOptions: {
+    ssl: process.env.NODE_ENV === 'production' ? {
+      require: true,
+      rejectUnauthorized: false
+    } : false
+  }
 });
 
 const modelDefiners = [];
