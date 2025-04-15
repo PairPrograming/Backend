@@ -105,6 +105,15 @@ module.exports = (sequelize) => {
           },
         },
       },
+      profileImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isUrl: {
+            msg: "La URL de la imagen no es válida",
+          },
+        },
+      },
       lastLogin: {
         type: DataTypes.DATE,
         allowNull: true,
