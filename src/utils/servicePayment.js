@@ -13,11 +13,10 @@ const procesarPago = async (salonId, datosDelPago, maxIntentos = 3) => {
             const payment = new Payment(configurado);
             // Procesar el pago
             const resultado = await payment.create({ body: datosDelPago });
-            
+            console.log(resultado)
             // Registrar resultado exitoso
-            console.log(`Pago procesado exitosamente para salón ID: ${salonId}, paymentId: ${resultado.body.id}`);
-            
-            return resultado;
+            console.log(`Pago procesado exitosamente para salón ID: ${salonId}, paymentId: ${resultado.id}`);
+            return { body: resultado };
         } catch (error) {
             intentos++;
             
@@ -43,8 +42,8 @@ const procesarPagoHandler = async(req, res) => {
         const result = await procesarPago(salonId, datosDelPago);
         return res.status(200).json({
             message: 'Pago procesado correctamente',
-            payment: result.body
-        })
+            payment: result.body.status
+          });
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
