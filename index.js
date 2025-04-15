@@ -1,8 +1,8 @@
-const server = require('./src/app.js');
-const { conn } = require('./src/DbIndex.js');
+const server = require("./src/app.js");
+const { conn } = require("./src/DbIndex.js");
 
-conn.sync({ force: false  }).then(() => {
-  server.listen(3001, () => {
-    console.log('%s listening at 3001');
+conn.sync({ force: false }).then(() => {
+  server.listen(4000, () => {
+    console.log("%s listening at 4000");
   });
 });

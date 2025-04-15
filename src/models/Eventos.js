@@ -11,10 +11,13 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             allowNull:false
         },
-
         fecha: {
             type: DataTypes.DATE,
-            allowNull:false
+            allowNull: false,
+            validate: {
+                isDate: true,
+                isAfter: new Date().toISOString()
+            }
         },
         duracion: {
             type: DataTypes.INTEGER,
@@ -23,6 +26,14 @@ module.exports = (sequelize) => {
                 min: 1 // Evita valores negativos o eventos de duración 0
             },
             comment: "Duración en minutos"
+        },
+        capacidad: {
+            type: DataTypes.INTEGER,
+            allowNull:false,
+            defaultValue: 1,
+            validate: {
+                min: 1 // Asegura que sea un número positivo
+            }
         },
         activo: {
             type: DataTypes.BOOLEAN,

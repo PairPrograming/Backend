@@ -9,6 +9,6 @@ INSERT INTO public."Rols" (id, rol, status) VALUES
   (gen_random_uuid(), 'Raso', true),
   (gen_random_uuid(), 'Graduado', true);
 
-INSERT INTO public."User_Types"(id, usertyype, status) VALUES
+INSERT INTO public."User_Types"(id, usertype, status) VALUES
 	(gen_random_uuid(), 'Natural', true),
   (gen_random_uuid(), 'Juridica', true);

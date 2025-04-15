@@ -8,10 +8,15 @@ module.exports = (sequelize) => {
             allowNull: false,
             defaultValue: UUIDV4
         },
-        descripcion:{
+        salon:{
             type: DataTypes.STRING,
+            unique: true,
             allowNull:false
         },
+        nombre:{
+            type: DataTypes.STRING,
+            allowNull:false
+        },  
         capacidad: {
             type: DataTypes.INTEGER,
             allowNull:false,
@@ -20,6 +25,22 @@ module.exports = (sequelize) => {
                 min: 1 // Asegura que sea un número positivo
             }
         },
+        cuit:{
+            type: DataTypes.STRING,
+            allowNull:false,
+            unique: true,
+            validate: {
+                is: /^\d{2}-\d{8}-\d{1}$/  // Valida formato CUIT argentino
+            }
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+          },
+        whatsapp: {
+            type: DataTypes.STRING,
+            allowNull: false, 
+          },
         estatus: {
             type: DataTypes.BOOLEAN,
             allowNull:false,
