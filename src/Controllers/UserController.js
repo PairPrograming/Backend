@@ -131,7 +131,15 @@ const obtenerUsuariosController = async (isActive) => {
 
     const users = await Users.findAll({
       where: whereClause,
-      attributes: ["id", "nombre", "apellido", "email", "isActive", "usuario"],
+      attributes: [
+        "id",
+        "nombre",
+        "apellido",
+        "email",
+        "isActive",
+        "usuario",
+        "rol",
+      ],
     });
 
     return users;
@@ -139,6 +147,7 @@ const obtenerUsuariosController = async (isActive) => {
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
+
 const changePasswordController = async (id, data) => {
   try {
     const { currentpassword, newpassword } = data;
@@ -159,6 +168,24 @@ const changePasswordController = async (id, data) => {
     );
   }
 };
+
+const updateUserRoleController = async (id, rol) => {
+  try {
+    const user = await Users.findByPk(id);
+
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    user.rol = rol;
+    await user.save();
+
+    return { success: true, message: `Rol del usuario actualizado a ${rol}` };
+  } catch (error) {
+    throw new Error(`Error al actualizar el rol del usuario: ${error.message}`);
+  }
+};
+
 module.exports = {
   createUserController,
   obtenerUserController,
@@ -169,4 +196,5 @@ module.exports = {
   softDeleteUserController,
   obtenerUsuariosController,
   changePasswordController,
+  updateUserRoleController,
 };

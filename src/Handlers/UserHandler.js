@@ -8,6 +8,7 @@ const {
   softDeleteUserController,
   obtenerUsuariosController,
   changePasswordController,
+  updateUserRoleController,
 } = require("../Controllers/UserController");
 
 const createUserHandler = async (req, res) => {
@@ -185,6 +186,7 @@ const obtenerUsuariosHandler = async (req, res) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
 const changePasswordHandler = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
@@ -195,6 +197,25 @@ const changePasswordHandler = async (req, res) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
+const updateUserRoleHandler = async (req, res) => {
+  const { id } = req.params;
+  const { rol } = req.body;
+
+  if (!rol || !["admin", "vendor"].includes(rol)) {
+    return res
+      .status(400)
+      .json({ message: "El rol debe ser 'admin' o 'vendor'" });
+  }
+
+  try {
+    await updateUserRoleController(id, rol);
+    return res.status(200).json({ message: `Rol actualizado a ${rol}` });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createUserHandler,
   crearUsuarioAdminHandler,
@@ -206,4 +227,5 @@ module.exports = {
   softDeleteUserHandler,
   obtenerUsuariosHandler,
   changePasswordHandler,
+  updateUserRoleHandler,
 };
