@@ -25,6 +25,6 @@ routeUsers.delete("/delete/:id", deleteUserHandler);
 routeUsers.put("/soft-delete/:id", softDeleteUserHandler);
 routeUsers.get("/usuarios", obtenerUsuariosHandler);
 routeUsers.put("/changepasword/:id", changePasswordHandler);
-routeUsers.put("/change-role/:id", updateUserRoleHandler); // NUEVA RUTA
+routeUsers.put("/change-role/:id", updateUserRoleHandler);
 
 module.exports = routeUsers;

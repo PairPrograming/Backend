@@ -27,6 +27,7 @@ const obtenerUserController = async (id) => {
         "direccion",
         "whatsapp",
         "usuario",
+        "rol", // Añadido el rol para asegurar que esté disponible
       ],
       raw: true,
     });
@@ -79,7 +80,20 @@ const verificarUsuarioController = async ({ email, usuario, dni }) => {
 
   const user = await Users.findOne({
     where: whereClause,
-    attributes: ["id", "email", "usuario", "dni"],
+    attributes: [
+      "id",
+      "email",
+      "usuario",
+      "dni",
+      "rol",
+      "nombre",
+      "apellido",
+      "isActive",
+    ],
+    include: {
+      model: Rols,
+      attributes: ["rol"],
+    },
   });
 
   return user;
