@@ -154,7 +154,6 @@ const changePasswordController = async (id, data) => {
     const user = await Users.findByPk(id, {
       attributes: ["id", "password"],
     });
-    console.log(user);
     const match = await bcrypt.compare(currentpassword, user.password);
     if (!match) {
       throw new Error("La contraseña actual es incorrecta");
