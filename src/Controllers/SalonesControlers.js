@@ -3,7 +3,7 @@ const { Salones, Users, Eventos, SalonesEventos } = require('../DbIndex')
 const getGridSalonesController = async () => {
     try {
         const result = await Salones.findAll({
-            attributes: ['salon', 'cuit', 'nombre', 'email', 'whatsapp']
+            attributes: ['id','salon', 'cuit', 'nombre', 'email', 'whatsapp']
         });
         return { success: true, data: result };
     } catch (error) {
