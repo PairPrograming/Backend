@@ -27,6 +27,15 @@ module.exports = (sequelize) => {
           min: 1, // Asegura que sea un número positivo
         },
       },
+      image: {
+              type: DataTypes.STRING,
+              allowNull: true,
+              validate: {
+                isUrl: {
+                  msg: "La URL de la imagen no es válida",
+                },
+              },
+            },
       cuit: {
         type: DataTypes.STRING,
         allowNull: false,
