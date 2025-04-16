@@ -3,7 +3,7 @@ const { Salones, Users, Eventos, SalonesEventos } = require('../DbIndex')
 const getGridSalonesController = async () => {
     try {
         const result = await Salones.findAll({
-            attributes: ['salon', 'cuit', 'nombre', 'email', 'whatsapp']
+            attributes: ['Id','salon', 'cuit', 'nombre', 'email', 'whatsapp']
         });
         return { success: true, data: result };
     } catch (error) {
@@ -15,7 +15,7 @@ const getSalonController = async (id, data) => {
     try {
         const result = await Salones.findByPk(id, 
             {
-                attributes: ['salon', "capacidad", 'cuit', 'email', 'nombre', 'whatsapp', 'Mercadopago', 'estatus'],
+                attributes: ['salon', "capacidad", 'cuit', 'email', 'nombre', 'whatsapp', 'MercadopagoKeyP','Mercadopago','cbu', 'alias', 'estatus'],
             }
          );
         if (!result) {
