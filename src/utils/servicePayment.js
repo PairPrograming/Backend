@@ -1,5 +1,5 @@
 const { configureMercadoPago } = require('./MpKeyService');
-const { MercadoPagoConfig, Payment } = require('mercadopago');
+const { MercadoPagoConfig, Payment, Preference} = require('mercadopago');
 
 const procesarPago = async (salonId, datosDelPago, maxIntentos = 3) => {
     let intentos = 0;
@@ -50,5 +50,5 @@ const procesarPagoHandler = async(req, res) => {
 }
 
 module.exports = {
-    procesarPagoHandler
+    procesarPagoHandler,
 }

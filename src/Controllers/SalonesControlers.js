@@ -15,7 +15,7 @@ const getSalonController = async (id, data) => {
     try {
         const result = await Salones.findByPk(id, 
             {
-                attributes: ['salon', "capacidad", 'cuit', 'email', 'nombre', 'whatsapp', 'Mercadopago', 'estatus'],
+                attributes: ['salon', "capacidad", 'cuit', 'email', 'nombre', 'whatsapp', 'MercadopagoKeyP','Mercadopago','cbu', 'alias', 'estatus'],
             }
          );
         if (!result) {
