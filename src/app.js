@@ -15,7 +15,7 @@ server.use(
   cors({
     origin: true,
     credentials: true,
-    methods: "GET, POST, OPTIONS, PUT, DELETE",
+    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   })
