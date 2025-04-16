@@ -4,6 +4,7 @@ const path = require("path");
 require("dotenv").config();
 
 const { LINKDB } = process.env;
+const {DATABASE_URL}= process.env;
 
 // const sequelize = new Sequelize(LINKDB, {
 //   logging: false,
