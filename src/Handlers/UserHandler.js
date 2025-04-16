@@ -202,7 +202,7 @@ const updateUserRoleHandler = async (req, res) => {
   const { id } = req.params;
   const { rol } = req.body;
 
-  if (!rol || !["admin", "vendor"].includes(rol)) {
+  if (!rol || !["admin", "vendor", "comun"].includes(rol)) {
     return res
       .status(400)
       .json({ message: "El rol debe ser 'admin' o 'vendor'" });
