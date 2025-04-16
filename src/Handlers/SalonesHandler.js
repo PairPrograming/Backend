@@ -22,8 +22,8 @@ const getSalonHandler = async(req, res) => {
     }
 }
 const postSalonHandler = async(req, res) => {
-    const { salon, nombre, capacidad, cuit, email, whatsapp, estatus, Mercadopago} = req.body;
-    const info = { salon, nombre, capacidad, cuit, email, whatsapp, estatus, Mercadopago: Mercadopago};
+    const { salon, nombre, capacidad, cuit, email, whatsapp, estatus, MercadopagoKeyP,Mercadopago, cbu, alias} = req.body;
+    const info = { salon, nombre, capacidad, cuit, email, whatsapp, estatus, MercadopagoKeyP:MercadopagoKeyP, Mercadopago: Mercadopago, cbu, alias};
     try {
         await postSalonController(info);
         return res.status(201).json('Salon agregado');
