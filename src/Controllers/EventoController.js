@@ -3,7 +3,7 @@ const { Salones, Eventos, SalonesEventos } = require("../DbIndex");
 const getEventosGridController = async () => {
   try {
     const result = await Eventos.findAll({
-      attributes: ["nombre", "fecha", "duraccion", "activo"],
+      attributes: ["id","nombre", "fecha", "duraccion", "activo"],
     });
     return { success: true, data: result };
   } catch (error) {
