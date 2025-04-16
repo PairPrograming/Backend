@@ -43,23 +43,26 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      MercadopagoKeyP: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      Mercadopago: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      cbu: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      alias: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       estatus: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true,
-      },
-      Mercadopago: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      image: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          isUrl: {
-            msg: "La URL de la imagen no es válida",
-          },
-        },
       },
     },
     { timestamps: true }
