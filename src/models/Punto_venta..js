@@ -53,6 +53,15 @@ module.exports = (sequelize) => {
           this.setDataValue("isActive", Boolean(value));
         },
       },
+      image: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isUrl: {
+            msg: "La URL de la imagen no es válida",
+          },
+        },
+      },
     },
     {
       timestamps: true,
