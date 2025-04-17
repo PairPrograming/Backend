@@ -3,6 +3,8 @@ const {
   modEventoController,
   getEventoController,
   getEventosGridController,
+  deleteEventoLogicoController, // Nuevo controller para borrado lógico
+  deleteEventoFisicoController, // Nuevo controller para borrado físico
 } = require("../Controllers/EventoController");
 
 const getEventoGridHandler = async (req, res) => {
@@ -45,9 +47,33 @@ const modEventoHandler = async (req, res) => {
   }
 };
 
+// Nuevo handler para borrado lógico
+const deleteEventoLogicHandler = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await deleteEventoLogicoController(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+// Nuevo handler para borrado físico
+const deleteEventoFisicoHandler = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await deleteEventoFisicoController(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getEventoHandler,
   getEventoGridHandler,
   addEventoHandler,
   modEventoHandler,
+  deleteEventoLogicHandler,
+  deleteEventoFisicoHandler,
 };

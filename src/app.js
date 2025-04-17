@@ -14,12 +14,12 @@ server.name = "API";
 server.use(
   cors({
     origin: [
-      "http://localhost:5173", 
+      "http://localhost:5173",
       "http://localhost:3000",
       "backend-production-40d9.up.railway.app",
     ],
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   })

@@ -85,9 +85,70 @@ const modEventoController = async (id, data) => {
   }
 };
 
+// Nuevo controller para borrado lógico
+const deleteEventoLogicoController = async (id) => {
+  try {
+    const evento = await Eventos.findByPk(id);
+    if (!evento) {
+      throw new Error("Evento no encontrado");
+    }
+
+    // Update the 'activo' field to false
+    const [updateRows] = await Eventos.update(
+      { activo: false },
+      { where: { id } }
+    );
+
+    if (updateRows === 0) {
+      throw new Error("No se pudo desactivar el evento");
+    }
+
+    return {
+      success: true,
+      message: "Evento desactivado correctamente",
+    };
+  } catch (error) {
+    throw new Error(`Error al desactivar el evento: ${error.message}`);
+  }
+};
+
+// Nuevo controller para borrado físico
+const deleteEventoFisicoController = async (id) => {
+  try {
+    // First, verify the event exists
+    const evento = await Eventos.findByPk(id);
+    if (!evento) {
+      throw new Error("Evento no encontrado");
+    }
+
+    // Delete related records in the intermediate table first to maintain referential integrity
+    await SalonesEventos.destroy({
+      where: { eventoId: id },
+    });
+
+    // Then delete the event itself
+    const deletedRows = await Eventos.destroy({
+      where: { id },
+    });
+
+    if (deletedRows === 0) {
+      throw new Error("No se pudo eliminar el evento");
+    }
+
+    return {
+      success: true,
+      message: "Evento eliminado permanentemente",
+    };
+  } catch (error) {
+    throw new Error(`Error al eliminar el evento: ${error.message}`);
+  }
+};
+
 module.exports = {
   addEventoController,
   modEventoController,
   getEventoController,
   getEventosGridController,
+  deleteEventoLogicoController,
+  deleteEventoFisicoController,
 };
