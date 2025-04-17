@@ -1,10 +1,11 @@
 const { Router } = require("express");
 const {
-    getEventoHandler,
-    getEventoGridHandler,
-    addEventoHandler,
-    modEventoHandler
-} = require('../Handlers/EventoHandler')
+  getEventoHandler,
+  getEventoGridHandler,
+  addEventoHandler,
+  modEventoHandler,
+} = require("../Handlers/EventoHandler");
+
 const routeEvento = Router();
 
 routeEvento.get("/:id", getEventoHandler);
