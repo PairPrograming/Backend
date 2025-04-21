@@ -16,7 +16,7 @@ server.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "backend-production-40d9.up.railway.app",
+      "https://backend-production-687d.up.railway.app",
       "https://front-psi-rosy.vercel.app/",
     ],
     credentials: true,
