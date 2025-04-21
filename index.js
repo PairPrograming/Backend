@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 4000;
 conn
   .authenticate()
   .then(() => {
-    console.log('Conexión a la base de datos establecida');
-    return conn.sync({ force: true });
+    console.log("Conexión a la base de datos establecida");
+    return conn.sync({ force: false });
   })
   .then(() => {
     app.listen(PORT, () => {

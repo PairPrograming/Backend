@@ -1,0 +1,36 @@
+INSERT INTO Salones (
+    Id,
+    salon,
+    nombre,
+    capacidad,
+    image,
+    cuit,
+    email,
+    whatsapp,
+    MercadopagoKeyP,
+    Mercadopago,
+    cbu,
+    alias,
+    estatus,
+    createdAt,
+    updatedAt,
+    deletedAt
+  )
+VALUES (
+    'Id:uuid',
+    'salon:character varying',
+    'nombre:character varying',
+    capacidad:integer,
+    'image:character varying',
+    'cuit:character varying',
+    'email:character varying',
+    'whatsapp:character varying',
+    'MercadopagoKeyP:character varying',
+    'Mercadopago:character varying',
+    'cbu:character varying',
+    'alias:character varying',
+    estatus:boolean,
+    'createdAt:timestamp with time zone',
+    'updatedAt:timestamp with time zone',
+    'deletedAt:timestamp with time zone'
+  );

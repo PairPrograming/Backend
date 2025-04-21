@@ -28,14 +28,14 @@ module.exports = (sequelize) => {
         },
       },
       image: {
-              type: DataTypes.STRING,
-              allowNull: true,
-              validate: {
-                isUrl: {
-                  msg: "La URL de la imagen no es válida",
-                },
-              },
-            },
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isUrl: {
+            msg: "La URL de la imagen no es válida",
+          },
+        },
+      },
       cuit: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -47,6 +47,11 @@ module.exports = (sequelize) => {
       email: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: {
+          isEmail: {
+            msg: "El formato del email no es válido",
+          },
+        },
       },
       whatsapp: {
         type: DataTypes.STRING,
@@ -74,6 +79,9 @@ module.exports = (sequelize) => {
         defaultValue: true,
       },
     },
-    { timestamps: true }
+    {
+      timestamps: true,
+      paranoid: true, // Habilita el borrado lógico
+    }
   );
 };
