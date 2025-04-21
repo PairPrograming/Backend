@@ -4,23 +4,29 @@ const path = require("path");
 require("dotenv").config();
 
 const { LINKDB } = process.env;
-const {DATABASE_URL}= process.env;
+const { DATABASE_URL } = process.env;
 
 // const sequelize = new Sequelize(LINKDB, {
 //   logging: false,
 //   native: false,
 // });
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || process.env.LINKDB, {
-  logging: false,
-  native: false,
-  dialectOptions: {
-    ssl: process.env.NODE_ENV === 'production' ? {
-      require: true,
-      rejectUnauthorized: false
-    } : false
+const sequelize = new Sequelize(
+  process.env.DATABASE_URL || process.env.LINKDB,
+  {
+    logging: false,
+    native: false,
+    dialectOptions: {
+      ssl:
+        process.env.NODE_ENV === "production"
+          ? {
+              require: true,
+              rejectUnauthorized: false,
+            }
+          : false,
+    },
   }
-});
+);
 
 const modelDefiners = [];
 
@@ -66,13 +72,14 @@ const {
   Eventos,
   Metodo_de_pago,
   Punto_de_venta,
-  Tickets
+  Tickets,
+  Image,
 } = sequelize.models;
+
 /* ------------------- Relaciones --------------------- */
 // Usuario / Roles
 Rols.hasMany(Users, { foreignKey: "roleId" });
 Users.belongsTo(Rols, { foreignKey: "roleId" });
-
 
 // Usuario / Punto de venta:
 Users.belongsToMany(Punto_de_venta, {
@@ -104,7 +111,6 @@ Eventos.belongsToMany(Salones, {
   foreignKey: "eventoId",
 });
 
-
 // tipo de pago / punto de venta
 Metodo_de_pago.belongsToMany(Punto_de_venta, {
   through: "metodosPago",
@@ -115,15 +121,58 @@ Punto_de_venta.belongsToMany(Metodo_de_pago, {
   foreignKey: "puntoId",
 });
 
-
 // Invitados / Users
 Users.hasMany(Invitados, { foreignKey: "userId" });
 Invitados.belongsTo(Users, { foreignKey: "userId" });
+
 // Invitados / Eventos
 Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
 Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
 
-// Transacciones y registro de las mismas
+// Images / Eventos
+Eventos.hasMany(Image, {
+  foreignKey: "relatedId",
+  constraints: false,
+  scope: {
+    type: "evento",
+  },
+});
+
+// Images / Salones
+Salones.hasMany(Image, {
+  foreignKey: "relatedId",
+  constraints: false,
+  scope: {
+    type: "salon",
+  },
+});
+
+// Images / Invitados
+Invitados.hasMany(Image, {
+  foreignKey: "relatedId",
+  constraints: false,
+  scope: {
+    type: "invitado",
+  },
+});
+
+// Images / Punto_de_venta
+Punto_de_venta.hasMany(Image, {
+  foreignKey: "relatedId",
+  constraints: false,
+  scope: {
+    type: "punto_venta",
+  },
+});
+
+// Images / Users
+Users.hasMany(Image, {
+  foreignKey: "relatedId",
+  constraints: false,
+  scope: {
+    type: "usuario",
+  },
+});
 
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');
