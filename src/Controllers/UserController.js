@@ -27,6 +27,7 @@ const obtenerUserController = async (id) => {
         "direccion",
         "whatsapp",
         "usuario",
+        "rol", // Añadido el rol para asegurar que esté disponible
       ],
       raw: true,
     });
@@ -79,7 +80,20 @@ const verificarUsuarioController = async ({ email, usuario, dni }) => {
 
   const user = await Users.findOne({
     where: whereClause,
-    attributes: ["id", "email", "usuario", "dni"],
+    attributes: [
+      "id",
+      "email",
+      "usuario",
+      "dni",
+      "rol",
+      "nombre",
+      "apellido",
+      "isActive",
+    ],
+    include: {
+      model: Rols,
+      attributes: ["rol"],
+    },
   });
 
   return user;
@@ -131,7 +145,15 @@ const obtenerUsuariosController = async (isActive) => {
 
     const users = await Users.findAll({
       where: whereClause,
-      attributes: ["id", "nombre", "apellido", "email", "isActive", "usuario"],
+      attributes: [
+        "id",
+        "nombre",
+        "apellido",
+        "email",
+        "isActive",
+        "usuario",
+        "rol",
+      ],
     });
 
     return users;
@@ -139,6 +161,7 @@ const obtenerUsuariosController = async (isActive) => {
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
+
 const changePasswordController = async (id, data) => {
   try {
     const { currentpassword, newpassword } = data;
@@ -159,6 +182,24 @@ const changePasswordController = async (id, data) => {
     );
   }
 };
+
+const updateUserRoleController = async (id, rol) => {
+  try {
+    const user = await Users.findByPk(id);
+
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    user.rol = rol;
+    await user.save();
+
+    return { success: true, message: `Rol del usuario actualizado a ${rol}` };
+  } catch (error) {
+    throw new Error(`Error al actualizar el rol del usuario: ${error.message}`);
+  }
+};
+
 module.exports = {
   createUserController,
   obtenerUserController,
@@ -169,4 +210,5 @@ module.exports = {
   softDeleteUserController,
   obtenerUsuariosController,
   changePasswordController,
+  updateUserRoleController,
 };

@@ -3,7 +3,7 @@ const { Salones, Eventos, SalonesEventos } = require("../DbIndex");
 const getEventosGridController = async () => {
   try {
     const result = await Eventos.findAll({
-      attributes: ["nombre", "fecha", "duraccion", "activo"],
+      attributes: ["id", "nombre", "fecha", "duracion", "capacidad", "activo"],
     });
     return { success: true, data: result };
   } catch (error) {
@@ -16,12 +16,12 @@ const getEventosGridController = async () => {
 const getEventoController = async (id) => {
   try {
     const result = await Eventos.findByPk(id, {
-      attributes: ["nombre", "fecha", "duraccion", "activo"],
+      attributes: ["nombre", "fecha", "duracion", "capacidad", "activo"],
     });
     if (!result) {
       throw new Error("Evento no encontrado");
     }
-    return {success: true, data: result};
+    return { success: true, data: result };
   } catch (error) {
     throw new Error(`Error al obtener informacion ${error.message}`);
   }
@@ -31,40 +31,40 @@ const addEventoController = async (data) => {
   try {
     // Extraemos el salonId de los datos
     const { salonId, ...eventoData } = data;
-    
+
     // Verificamos que se haya proporcionado el salonId
     if (!salonId) {
       throw new Error("Es necesario seleccionar un salón para el evento");
     }
-    
+
     // Verificamos que el salón exista
     const salon = await Salones.findByPk(salonId);
     if (!salon) {
       throw new Error("No se encontró el salón seleccionado");
     }
-    if(eventoData.capacidad > salon.capacidad){
-      throw new Error('No puedes superar la capacidad del salon')
+    if (eventoData.capacidad > salon.capacidad) {
+      throw new Error("No puedes superar la capacidad del salon");
     }
     // Creamos el evento
     const [existingEvento, created] = await Eventos.findOrCreate({
       where: { nombre: eventoData.nombre },
       defaults: eventoData,
     });
-    
+
     if (!created) {
       throw new Error("El evento ya existe");
     }
-    
+
     // Ahora creamos la asociación en la tabla intermedia
     await SalonesEventos.create({
       salonId: salonId,
-      eventoId: existingEvento.id
+      eventoId: existingEvento.id,
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       message: "Evento creado y asociado al salón con éxito",
-      evento: existingEvento 
+      evento: existingEvento,
     };
   } catch (error) {
     throw new Error(`Error al crear el evento: ${error.message}`);
@@ -73,7 +73,7 @@ const addEventoController = async (data) => {
 
 const modEventoController = async (id, data) => {
   try {
-    const [updateRows] = await Eventos.update(data, { where: { id: id } });
+    const [updateRows] = await Eventos.update(data, { where: { id } });
     if (updateRows === 0) {
       throw new Error("No se encontro el evento o no hubo cambios");
     }
@@ -85,9 +85,70 @@ const modEventoController = async (id, data) => {
   }
 };
 
+// Nuevo controller para borrado lógico
+const deleteEventoLogicoController = async (id) => {
+  try {
+    const evento = await Eventos.findByPk(id);
+    if (!evento) {
+      throw new Error("Evento no encontrado");
+    }
+
+    // Update the 'activo' field to false
+    const [updateRows] = await Eventos.update(
+      { activo: false },
+      { where: { id } }
+    );
+
+    if (updateRows === 0) {
+      throw new Error("No se pudo desactivar el evento");
+    }
+
+    return {
+      success: true,
+      message: "Evento desactivado correctamente",
+    };
+  } catch (error) {
+    throw new Error(`Error al desactivar el evento: ${error.message}`);
+  }
+};
+
+// Nuevo controller para borrado físico
+const deleteEventoFisicoController = async (id) => {
+  try {
+    // First, verify the event exists
+    const evento = await Eventos.findByPk(id);
+    if (!evento) {
+      throw new Error("Evento no encontrado");
+    }
+
+    // Delete related records in the intermediate table first to maintain referential integrity
+    await SalonesEventos.destroy({
+      where: { eventoId: id },
+    });
+
+    // Then delete the event itself
+    const deletedRows = await Eventos.destroy({
+      where: { id },
+    });
+
+    if (deletedRows === 0) {
+      throw new Error("No se pudo eliminar el evento");
+    }
+
+    return {
+      success: true,
+      message: "Evento eliminado permanentemente",
+    };
+  } catch (error) {
+    throw new Error(`Error al eliminar el evento: ${error.message}`);
+  }
+};
+
 module.exports = {
   addEventoController,
   modEventoController,
   getEventoController,
   getEventosGridController,
+  deleteEventoLogicoController,
+  deleteEventoFisicoController,
 };

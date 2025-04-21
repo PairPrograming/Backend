@@ -105,6 +105,26 @@ module.exports = (sequelize) => {
           },
         },
       },
+      rol: {
+        type: DataTypes.ENUM("admin", "vendor", "comun"),
+        allowNull: false,
+        defaultValue: "comun", // Por defecto será 'vendor'
+        validate: {
+          isIn: {
+            args: [["admin", "vendor", "comun"]],
+            msg: "El rol debe ser 'admin' o 'vendor'",
+          },
+        },
+      },
+      profileImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isUrl: {
+            msg: "La URL de la imagen no es válida",
+          },
+        },
+      },
       lastLogin: {
         type: DataTypes.DATE,
         allowNull: true,

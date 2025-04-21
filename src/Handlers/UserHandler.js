@@ -8,6 +8,7 @@ const {
   softDeleteUserController,
   obtenerUsuariosController,
   changePasswordController,
+  updateUserRoleController,
 } = require("../Controllers/UserController");
 
 const createUserHandler = async (req, res) => {
@@ -129,7 +130,22 @@ const verificarUsuarioHandler = async (req, res) => {
     const user = await verificarUsuarioController({ email, usuario, dni });
 
     if (user) {
-      return res.status(200).json({ registrado: true, usuario: user });
+      // Construir un objeto con los datos del usuario incluyendo el rol
+      const userData = {
+        id: user.id,
+        email: user.email,
+        usuario: user.usuario,
+        dni: user.dni,
+        nombre: user.nombre,
+        apellido: user.apellido,
+        isActive: user.isActive,
+        rol: user.rol || (user.Rol ? user.Rol.rol : "comun"), // Usar el rol del modelo Rols si está disponible
+      };
+
+      return res.status(200).json({
+        registrado: true,
+        usuario: userData,
+      });
     } else {
       return res.status(200).json({ registrado: false });
     }
@@ -185,6 +201,7 @@ const obtenerUsuariosHandler = async (req, res) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
 const changePasswordHandler = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
@@ -195,6 +212,25 @@ const changePasswordHandler = async (req, res) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
+const updateUserRoleHandler = async (req, res) => {
+  const { id } = req.params;
+  const { rol } = req.body;
+
+  if (!rol || !["admin", "vendor", "comun"].includes(rol)) {
+    return res
+      .status(400)
+      .json({ message: "El rol debe ser 'admin', 'vendor' o 'comun'" });
+  }
+
+  try {
+    await updateUserRoleController(id, rol);
+    return res.status(200).json({ message: `Rol actualizado a ${rol}` });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createUserHandler,
   crearUsuarioAdminHandler,
@@ -206,4 +242,5 @@ module.exports = {
   softDeleteUserHandler,
   obtenerUsuariosHandler,
   changePasswordHandler,
+  updateUserRoleHandler,
 };
