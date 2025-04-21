@@ -13,7 +13,12 @@ server.name = "API";
 // Configuración de CORS
 server.use(
   cors({
-    origin: ["*"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://backend-production-40d9.up.railway.app",
+      "https://front-psi-rosy.vercel.app",
+    ],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allowedHeaders:
