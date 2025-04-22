@@ -34,7 +34,7 @@ const authMiddleware = async (req, res, next) => {
       
       const decodedToken = jwt.decode(token, { complete: true });
       if (!decodedToken) {
-        throw new Error("Invalid token format");
+        throw new Error("Formato del token inválido");
       }
       
       const kid = decodedToken.header.kid;
