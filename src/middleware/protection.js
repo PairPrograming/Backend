@@ -8,7 +8,7 @@ const authMiddleware = (req, res, next) => {
                   req.body?.token;
     
     if (!token) {
-      return res.status(401).json({ message: "ASe requiere autenticación" });
+      return res.status(401).json({ message: "Se requiere autenticación" });
     }
     try {
       const decoded = jwt.verify(token, JWTKEY);
