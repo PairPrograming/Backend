@@ -20,6 +20,7 @@ const obtenerUserController = async (id) => {
   try {
     const user = await Users.findByPk(id, {
       attributes: [
+        "id",
         "dni",
         "nombre",
         "apellido",
@@ -27,14 +28,33 @@ const obtenerUserController = async (id) => {
         "direccion",
         "whatsapp",
         "usuario",
-        "rol", // Añadido el rol para asegurar que esté disponible
+        "rol",
+        "isActive",
       ],
+      include: {
+        model: Rols,
+        attributes: ["rol"],
+      },
       raw: true,
+      nest: true,
     });
 
     if (!user) throw new Error("Usuario no encontrado");
 
-    return user;
+    const completeUser = {
+      id: user.id,
+      dni: user.dni || "",
+      nombre: user.nombre || "",
+      apellido: user.apellido || "",
+      email: user.email || "",
+      direccion: user.direccion || "",
+      whatsapp: user.whatsapp || "",
+      usuario: user.usuario || "",
+      rol: user.rol || (user.Rol ? user.Rol.rol : "vendor"),
+      isActive: user.isActive !== undefined ? user.isActive : true,
+    };
+
+    return completeUser;
   } catch (error) {
     throw new Error(`Error al obtener el usuario: ${error.message}`);
   }
@@ -52,14 +72,21 @@ const obtenerUserGridController = async () => {
         "dni",
         "direccion",
         "whatsapp",
+        "rol",
+        "isActive",
       ],
       include: {
         model: Rols,
         attributes: ["rol"],
       },
       raw: true,
+      nest: true,
     });
-    return grid;
+
+    return grid.map((user) => ({
+      ...user,
+      rol: user.rol || (user.Rol ? user.Rol.rol : "vendor"),
+    }));
   } catch (error) {
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
@@ -67,7 +94,26 @@ const obtenerUserGridController = async () => {
 
 const updateUserController = async (id, data) => {
   try {
-    const [updatedRows] = await Users.update(data, { where: { id } });
+    const validFields = [
+      "nombre",
+      "apellido",
+      "direccion",
+      "email",
+      "whatsapp",
+      "usuario",
+      "dni",
+      "rol",
+      "isActive",
+    ];
+
+    const filteredData = {};
+    Object.keys(data).forEach((key) => {
+      if (validFields.includes(key)) {
+        filteredData[key] = data[key] || null;
+      }
+    });
+
+    const [updatedRows] = await Users.update(filteredData, { where: { id } });
 
     if (updatedRows === 0) {
       throw new Error(`No se encontró el usuario o no hubo cambios`);
