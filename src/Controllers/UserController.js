@@ -43,7 +43,16 @@ const obtenerUserController = async (id) => {
 const obtenerUserGridController = async () => {
   try {
     const grid = await Users.findAll({
-      attributes: ["id", "usuario", "nombre", "apellido", "email"],
+      attributes: [
+        "id",
+        "usuario",
+        "nombre",
+        "apellido",
+        "email",
+        "dni",
+        "direccion",
+        "whatsapp",
+      ],
       include: {
         model: Rols,
         attributes: ["rol"],
@@ -89,6 +98,8 @@ const verificarUsuarioController = async ({ email, usuario, dni }) => {
       "nombre",
       "apellido",
       "isActive",
+      "direccion",
+      "whatsapp",
     ],
     include: {
       model: Rols,
@@ -153,6 +164,9 @@ const obtenerUsuariosController = async (isActive) => {
         "isActive",
         "usuario",
         "rol",
+        "dni",
+        "direccion",
+        "whatsapp",
       ],
     });
 
