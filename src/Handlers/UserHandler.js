@@ -42,7 +42,6 @@ const createUserHandler = async (req, res) => {
   }
 };
 
-// NUEVO HANDLER PARA ADMIN
 const crearUsuarioAdminHandler = async (req, res) => {
   const {
     dni,
@@ -87,9 +86,20 @@ const obtenerUserHandler = async (req, res) => {
       });
     }
     const user = await obtenerUserController(id);
-    return res.status(201).json(user);
+
+    const formattedUser = {
+      ...user,
+      whatsapp: user.whatsapp || "",
+      dni: user.dni || "",
+      direccion: user.direccion || "",
+    };
+
+    return res.status(200).json(formattedUser);
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      message: error.message,
+      details: "Error al obtener datos del usuario",
+    });
   }
 };
 
@@ -107,13 +117,27 @@ const updateUserHandler = async (req, res) => {
   const { nombre, apellido, direccion, email, whatsapp, usuario, dni } =
     req.body;
 
-  const data = { nombre, apellido, direccion, email, whatsapp, usuario, dni };
+  const data = {
+    nombre: nombre || null,
+    apellido: apellido || null,
+    direccion: direccion || null,
+    email: email || null,
+    whatsapp: whatsapp || null,
+    usuario: usuario || null,
+    dni: dni || null,
+  };
 
   try {
     await updateUserController(id, data);
-    return res.status(200).json({ message: "Modificación exitosa" });
+    return res.status(200).json({
+      message: "Modificación exitosa",
+      updatedFields: Object.keys(data).filter((key) => data[key] !== null),
+    });
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      message: error.message,
+      details: "Error en la actualización",
+    });
   }
 };
 
@@ -130,7 +154,6 @@ const verificarUsuarioHandler = async (req, res) => {
     const user = await verificarUsuarioController({ email, usuario, dni });
 
     if (user) {
-      // Construir un objeto con los datos del usuario incluyendo el rol
       const userData = {
         id: user.id,
         email: user.email,
@@ -139,7 +162,7 @@ const verificarUsuarioHandler = async (req, res) => {
         nombre: user.nombre,
         apellido: user.apellido,
         isActive: user.isActive,
-        rol: user.rol || (user.Rol ? user.Rol.rol : "comun"), // Usar el rol del modelo Rols si está disponible
+        rol: user.rol || (user.Rol ? user.Rol.rol : "comun"),
       };
 
       return res.status(200).json({
