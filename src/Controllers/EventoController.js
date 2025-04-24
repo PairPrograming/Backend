@@ -143,6 +143,47 @@ const deleteEventoFisicoController = async (id) => {
     throw new Error(`Error al eliminar el evento: ${error.message}`);
   }
 };
+const addSalonEventoController = async (salonId, eventoId) =>{
+  try {
+    const salon = await Salones.findByPk(salonId);
+    const evento = await Eventos.findByPk(eventoId);
+    
+    if(!salon || !evento){
+        throw new Error('No se encontro el evento o el salon');
+    }
+    
+    const [existingEventoSalon, created] = await SalonesEventos.findOrCreate({
+      where: {salonId, eventoId},
+      defaults: {salonId, eventoId}
+    });
+    
+    if(!created){
+      throw new Error('El evento ya esta asociado en un salon');
+    }
+    
+    return { success: true, message:'Salon agregado al evento exitosamente'};
+  } catch (error) {
+    throw new Error(`Error al agregar el salon al evento: ${error.message}`);
+  }
+}
+const deleteSalonEventoController = async (salonId, eventoId) => {
+  try {
+    const salon = await Salones.findByPk(salonId);
+    const evento = await Eventos.findByPk(eventoId);
+    if(!salon || !evento){
+      throw new Error('No se encontro el evento o el salon');
+    }
+    await SalonesEventos.destroy({
+      where:{
+        salonId: salonId,
+        eventoId: eventoId
+      }
+    })
+    return { success: true, message:'Salon eliminadodel evento exitosamente'};
+  } catch (error) {
+    throw new Error(`Error al eliminar el salon al evento: ${error.message}`);
+  }
+}
 
 module.exports = {
   addEventoController,
@@ -151,4 +192,6 @@ module.exports = {
   getEventosGridController,
   deleteEventoLogicoController,
   deleteEventoFisicoController,
+  addSalonEventoController,
+  deleteSalonEventoController
 };
