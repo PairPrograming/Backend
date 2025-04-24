@@ -17,6 +17,12 @@ const getEventoController = async (id) => {
   try {
     const result = await Eventos.findByPk(id, {
       attributes: ["nombre", "fecha", "duracion", "capacidad", "activo"],
+      include: [{
+        model: Salones,
+        through: { attributes: [] },
+        attributes: ["Id", "salon", "capacidad"]
+      }],
+      raw: true,
     });
     if (!result) {
       throw new Error("Evento no encontrado");
