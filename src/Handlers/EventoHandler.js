@@ -3,91 +3,102 @@ const {
   modEventoController,
   getEventoController,
   getEventosGridController,
-  deleteEventoLogicoController, // Nuevo controller para borrado lógico
-  deleteEventoFisicoController, // Nuevo controller para borrado físico
+  deleteEventoLogicoController,
+  deleteEventoFisicoController,
   addSalonEventoController,
-  deleteSalonEventoController
+  deleteSalonEventoController,
 } = require("../Controllers/EventoController");
 
-const getEventoGridHandler = async (req, res) => {
+// Common response handler
+const responseHandler = (fn) => async (req, res) => {
   try {
-    const eventos = await getEventosGridController();
-    return res.status(200).json(eventos);
+    const result = await fn(req);
+    return res.status(result.status || 200).json(result.data);
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    console.error(`Error: ${error.message}`);
+    return res.status(error.status || 400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-const getEventoHandler = async (req, res) => {
+const getEventoGridHandler = responseHandler(async (req) => {
+  const filters = {
+    activo:
+      req.query.activo === "true"
+        ? true
+        : req.query.activo === "false"
+        ? false
+        : undefined,
+    fecha: req.query.fecha,
+  };
+
+  const result = await getEventosGridController(filters);
+  return { data: result };
+});
+
+const getEventoHandler = responseHandler(async (req) => {
   const { id } = req.params;
-  try {
-    const evento = await getEventoController(id);
-    return res.status(200).json(evento);
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-};
+  const result = await getEventoController(id);
+  return { data: result };
+});
 
-const addEventoHandler = async (req, res) => {
-  const data = req.body;
-  try {
-    const result = await addEventoController(data);
-    return res.status(201).json(result);
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-};
+const addEventoHandler = responseHandler(async (req) => {
+  const {
+    nombre,
+    fecha,
+    duracion,
+    capacidad,
+    activo,
+    image,
+    salonId, // Cambiado de "salon" a "salonId" para ser consistente con el controlador
+    descripcion,
+  } = req.body;
 
-const modEventoHandler = async (req, res) => {
+  const result = await addEventoController({
+    nombre,
+    fecha,
+    duracion,
+    capacidad,
+    activo,
+    image,
+    salonId, // Asegurarse de enviar el ID del salón correctamente
+    descripcion,
+  });
+
+  return { data: result, status: 201 };
+});
+
+const modEventoHandler = responseHandler(async (req) => {
   const { id } = req.params;
-  const data = req.body;
-  try {
-    const result = await modEventoController(id, data);
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-};
+  const result = await modEventoController(id, req.body);
+  return { data: result };
+});
 
-// Nuevo handler para borrado lógico
-const deleteEventoLogicHandler = async (req, res) => {
+const deleteEventoLogicHandler = responseHandler(async (req) => {
   const { id } = req.params;
-  try {
-    const result = await deleteEventoLogicoController(id);
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-};
+  const result = await deleteEventoLogicoController(id);
+  return { data: result };
+});
 
-// Nuevo handler para borrado físico
-const deleteEventoFisicoHandler = async (req, res) => {
+const deleteEventoFisicoHandler = responseHandler(async (req) => {
   const { id } = req.params;
-  try {
-    const result = await deleteEventoFisicoController(id);
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-};
-const addSalonEventoHandler = async (req, res) => {
-  const {eventoId, salonId} = req.body
-  try {
-      const result = await addSalonEventoController(salonId, eventoId);
-      return res.status(201).json(result);
-  } catch (error) {
-      return res.status(400).json({success:false, message: `Error interno del servidor: ${error.message}`});
-  }
-}
-const deleteSalonEventoHandler = async (req, res) => {
-  const { eventoId, salonId } = req.params
-  try {
-      const result = await deleteSalonEventoController(salonId, eventoId);
-      return res.status(201).json(result);
-  } catch (error) {
-      return res.status(400).json({success:false, message: `Error interno del servidor: ${error.message}`});
-  }
-}
+  const result = await deleteEventoFisicoController(id);
+  return { data: result };
+});
+
+const addSalonEventoHandler = responseHandler(async (req) => {
+  const { eventoId, salonId } = req.body;
+  const result = await addSalonEventoController(salonId, eventoId);
+  return { data: result, status: 201 };
+});
+
+const deleteSalonEventoHandler = responseHandler(async (req) => {
+  const { eventoId, salonId } = req.params;
+  const result = await deleteSalonEventoController(salonId, eventoId);
+  return { data: result };
+});
 
 module.exports = {
   getEventoHandler,
@@ -97,5 +108,5 @@ module.exports = {
   deleteEventoLogicHandler,
   deleteEventoFisicoHandler,
   addSalonEventoHandler,
-  deleteSalonEventoHandler
+  deleteSalonEventoHandler,
 };
