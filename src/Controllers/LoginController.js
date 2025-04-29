@@ -1,25 +1,29 @@
-const bcrypt = require('bcrypt')
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Users, Rols } = require("../DbIndex");
+const { Op } = require("sequelize");
 require("dotenv").config();
 
 const { JWTKEY } = process.env;
 
-const login = async (usuario, password) => {
+const login = async (userIdentifier, password) => {
   try {
+    // Search by either username or email
     const user = await Users.findOne({
-      where: { usuario },
+      where: {
+        [Op.or]: [{ usuario: userIdentifier }, { email: userIdentifier }],
+      },
       include: {
         model: Rols,
         attributes: ["rol"],
       },
-      attributes: { 
-        include: ['password']
+      attributes: {
+        include: ["password"],
       },
       raw: true,
       nest: true,
     });
-    
+
     if (!user) {
       throw new Error("El usuario no existe.");
     }

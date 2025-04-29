@@ -38,6 +38,8 @@ const getGridSalonesController = async (
         "whatsapp",
         "deletedAt",
         "estatus",
+        "capacidad",
+        "image",
       ],
       where: whereClause,
       limit: parseInt(limit),
