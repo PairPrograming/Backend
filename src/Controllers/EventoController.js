@@ -1,195 +1,232 @@
 const { Salones, Eventos, SalonesEventos } = require("../DbIndex");
+const { Op } = require("sequelize");
 
-const getEventosGridController = async () => {
-  try {
-    const result = await Eventos.findAll({
-      attributes: ["id", "nombre", "fecha", "duracion", "capacidad", "activo"],
-    });
-    return { success: true, data: result };
-  } catch (error) {
-    throw new Error(
-      `Error al obtener la información de los eventos: ${error.message}`
-    );
+// Common attributes for reuse
+const EVENT_ATTRIBUTES = [
+  "id",
+  "nombre",
+  "fecha",
+  "duracion",
+  "capacidad",
+  "activo",
+  "salonId",
+  "salonNombre", // Nuevo campo agregado
+  "descripcion",
+];
+
+// Error handler wrapper
+const errorHandler =
+  (fn) =>
+  async (...args) => {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      const message = error.message || "Error en la operación";
+      throw new Error(message);
+    }
+  };
+
+const getEventosGridController = errorHandler(async (filters = {}) => {
+  const where = {};
+
+  // Apply filters if provided
+  if (filters.activo !== undefined) {
+    where.activo = filters.activo;
   }
-};
 
-const getEventoController = async (id) => {
-  try {
-    const result = await Eventos.findByPk(id, {
-      attributes: ["nombre", "fecha", "duracion", "capacidad", "activo"],
-      include: [{
+  if (filters.fecha) {
+    where.fecha = {
+      [Op.gte]: new Date(filters.fecha),
+    };
+  }
+
+  const result = await Eventos.findAll({
+    attributes: EVENT_ATTRIBUTES,
+    where,
+    order: [["fecha", "ASC"]], // Default order by date ascending
+  });
+
+  return { success: true, data: result };
+});
+
+const getEventoController = errorHandler(async (id) => {
+  const result = await Eventos.findByPk(id, {
+    attributes: EVENT_ATTRIBUTES,
+    include: [
+      {
         model: Salones,
         through: { attributes: [] },
-        attributes: ["Id", "salon", "capacidad"]
-      }],
-      raw: true,
-    });
-    if (!result) {
-      throw new Error("Evento no encontrado");
-    }
-    return { success: true, data: result };
-  } catch (error) {
-    throw new Error(`Error al obtener informacion ${error.message}`);
+        attributes: ["id", "salonId", "capacidad", "nombre"], // Incluye el nombre del salón
+      },
+    ],
+  });
+
+  if (!result) {
+    throw new Error("Evento no encontrado");
   }
-};
 
-const addEventoController = async (data) => {
-  try {
-    // Extraemos el salonId de los datos
-    const { salonId, ...eventoData } = data;
+  return { success: true, data: result };
+});
 
-    // Verificamos que se haya proporcionado el salonId
-    if (!salonId) {
-      throw new Error("Es necesario seleccionar un salón para el evento");
+const addEventoController = errorHandler(async (data) => {
+  const { salonId, salonNombre, ...eventoData } = data;
+
+  // Verificar si el salón existe
+  if (salonId) {
+    const salonExistente = await Salones.findByPk(salonId);
+    if (!salonExistente) {
+      throw new Error("No se encontró el salón especificado");
     }
 
-    // Verificamos que el salón exista
-    const salon = await Salones.findByPk(salonId);
-    if (!salon) {
-      throw new Error("No se encontró el salón seleccionado");
+    if (eventoData.capacidad > salonExistente.capacidad) {
+      throw new Error("La capacidad del evento no puede superar la del salón");
     }
-    if (eventoData.capacidad > salon.capacidad) {
-      throw new Error("No puedes superar la capacidad del salon");
-    }
-    // Creamos el evento
-    const [existingEvento, created] = await Eventos.findOrCreate({
-      where: { nombre: eventoData.nombre },
-      defaults: eventoData,
-    });
-
-    if (!created) {
-      throw new Error("El evento ya existe");
-    }
-
-    // Ahora creamos la asociación en la tabla intermedia
-    await SalonesEventos.create({
-      salonId: salonId,
-      eventoId: existingEvento.id,
-    });
-
-    return {
-      success: true,
-      message: "Evento creado y asociado al salón con éxito",
-      evento: existingEvento,
-    };
-  } catch (error) {
-    throw new Error(`Error al crear el evento: ${error.message}`);
   }
-};
 
-const modEventoController = async (id, data) => {
-  try {
-    const [updateRows] = await Eventos.update(data, { where: { id } });
-    if (updateRows === 0) {
-      throw new Error("No se encontro el evento o no hubo cambios");
-    }
-    return { success: true, message: "Informacion actualizada correctamente" };
-  } catch (error) {
-    throw new Error(
-      `Error al actualizar la información del evento, ${error.message}`
-    );
+  // Crear el evento
+  const [existingEvento, created] = await Eventos.findOrCreate({
+    where: { nombre: eventoData.nombre },
+    defaults: { ...eventoData, salonId, salonNombre },
+  });
+
+  if (!created) {
+    throw new Error("El evento ya existe");
   }
-};
 
-// Nuevo controller para borrado lógico
-const deleteEventoLogicoController = async (id) => {
-  try {
-    const evento = await Eventos.findByPk(id);
-    if (!evento) {
-      throw new Error("Evento no encontrado");
-    }
+  return {
+    success: true,
+    message: "Evento creado con éxito",
+    evento: existingEvento,
+  };
+});
 
-    // Update the 'activo' field to false
-    const [updateRows] = await Eventos.update(
-      { activo: false },
-      { where: { id } }
-    );
-
-    if (updateRows === 0) {
-      throw new Error("No se pudo desactivar el evento");
-    }
-
-    return {
-      success: true,
-      message: "Evento desactivado correctamente",
-    };
-  } catch (error) {
-    throw new Error(`Error al desactivar el evento: ${error.message}`);
+const modEventoController = errorHandler(async (id, data) => {
+  const evento = await Eventos.findByPk(id);
+  if (!evento) {
+    throw new Error("Evento no encontrado");
   }
-};
 
-// Nuevo controller para borrado físico
-const deleteEventoFisicoController = async (id) => {
-  try {
-    // First, verify the event exists
-    const evento = await Eventos.findByPk(id);
-    if (!evento) {
-      throw new Error("Evento no encontrado");
+  const { salonId, salonNombre, ...eventoData } = data;
+
+  // Verificar si el salón existe si se está actualizando
+  if (salonId) {
+    const salonExistente = await Salones.findByPk(salonId);
+    if (!salonExistente) {
+      throw new Error("No se encontró el salón especificado");
     }
 
-    // Delete related records in the intermediate table first to maintain referential integrity
+    // Validar la capacidad si se está actualizando
+    if (
+      eventoData.capacidad &&
+      eventoData.capacidad > salonExistente.capacidad
+    ) {
+      throw new Error("La capacidad del evento no puede superar la del salón");
+    }
+  }
+
+  // Actualizar los datos del evento
+  await evento.update({ ...eventoData, salonId, salonNombre });
+
+  return { success: true, message: "Información actualizada correctamente" };
+});
+
+const deleteEventoLogicoController = errorHandler(async (id) => {
+  const evento = await Eventos.findByPk(id);
+  if (!evento) {
+    throw new Error("Evento no encontrado");
+  }
+
+  await evento.update({ activo: false });
+
+  return {
+    success: true,
+    message: "Evento desactivado correctamente",
+  };
+});
+
+const deleteEventoFisicoController = errorHandler(async (id) => {
+  const evento = await Eventos.findByPk(id);
+  if (!evento) {
+    throw new Error("Evento no encontrado");
+  }
+
+  // Transaction to ensure all operations succeed or fail together
+  const transaction = await Eventos.sequelize.transaction();
+
+  try {
+    // Delete related records in junction table
     await SalonesEventos.destroy({
       where: { eventoId: id },
+      transaction,
     });
 
-    // Then delete the event itself
-    const deletedRows = await Eventos.destroy({
-      where: { id },
-    });
+    // Delete event
+    await evento.destroy({ transaction });
 
-    if (deletedRows === 0) {
-      throw new Error("No se pudo eliminar el evento");
-    }
+    // Commit transaction
+    await transaction.commit();
 
     return {
       success: true,
       message: "Evento eliminado permanentemente",
     };
   } catch (error) {
-    throw new Error(`Error al eliminar el evento: ${error.message}`);
+    // Rollback on error
+    await transaction.rollback();
+    throw error;
   }
-};
-const addSalonEventoController = async (salonId, eventoId) =>{
-  try {
-    const salon = await Salones.findByPk(salonId);
-    const evento = await Eventos.findByPk(eventoId);
-    
-    if(!salon || !evento){
-        throw new Error('No se encontro el evento o el salon');
+});
+
+const addSalonEventoController = errorHandler(
+  async (salonId, eventoId, salonNombre) => {
+    const [salon, evento] = await Promise.all([
+      Salones.findByPk(salonId),
+      Eventos.findByPk(eventoId),
+    ]);
+
+    if (!salon || !evento) {
+      throw new Error("No se encontró el evento o el salón");
     }
-    
-    const [existingEventoSalon, created] = await SalonesEventos.findOrCreate({
-      where: {salonId, eventoId},
-      defaults: {salonId, eventoId}
+
+    const [_, created] = await SalonesEventos.findOrCreate({
+      where: { salonId, eventoId },
+      defaults: { salonId, eventoId, salonNombre },
     });
-    
-    if(!created){
-      throw new Error('El evento ya esta asociado en un salon');
+
+    if (!created) {
+      throw new Error("El evento ya está asociado a este salón");
     }
-    
-    return { success: true, message:'Salon agregado al evento exitosamente'};
-  } catch (error) {
-    throw new Error(`Error al agregar el salon al evento: ${error.message}`);
+
+    return { success: true, message: "Salón agregado al evento exitosamente" };
   }
-}
-const deleteSalonEventoController = async (salonId, eventoId) => {
-  try {
-    const salon = await Salones.findByPk(salonId);
-    const evento = await Eventos.findByPk(eventoId);
-    if(!salon || !evento){
-      throw new Error('No se encontro el evento o el salon');
-    }
-    await SalonesEventos.destroy({
-      where:{
-        salonId: salonId,
-        eventoId: eventoId
-      }
-    })
-    return { success: true, message:'Salon eliminadodel evento exitosamente'};
-  } catch (error) {
-    throw new Error(`Error al eliminar el salon al evento: ${error.message}`);
+);
+
+const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
+  const [salon, evento] = await Promise.all([
+    Salones.findByPk(salonId),
+    Eventos.findByPk(eventoId),
+  ]);
+
+  if (!salon || !evento) {
+    throw new Error("No se encontró el evento o el salón");
   }
-}
+
+  const deleted = await SalonesEventos.destroy({
+    where: {
+      salonId,
+      eventoId,
+    },
+  });
+
+  if (deleted === 0) {
+    throw new Error("No existe asociación entre este salón y evento");
+  }
+
+  return {
+    success: true,
+    message: "Salón eliminado del evento exitosamente",
+  };
+});
 
 module.exports = {
   addEventoController,
@@ -199,5 +236,5 @@ module.exports = {
   deleteEventoLogicoController,
   deleteEventoFisicoController,
   addSalonEventoController,
-  deleteSalonEventoController
+  deleteSalonEventoController,
 };
