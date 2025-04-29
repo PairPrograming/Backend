@@ -39,6 +39,7 @@ const getGridSalonesController = async (
         "deletedAt",
         "estatus",
         "capacidad",
+        "image",
       ],
       where: whereClause,
       limit: parseInt(limit),
