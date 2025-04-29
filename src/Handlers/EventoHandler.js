@@ -52,7 +52,8 @@ const addEventoHandler = responseHandler(async (req) => {
     capacidad,
     activo,
     image,
-    salonId, // Cambiado de "salon" a "salonId" para ser consistente con el controlador
+    salonId,
+    salonNombre, // Nuevo campo agregado
     descripcion,
   } = req.body;
 
@@ -63,7 +64,8 @@ const addEventoHandler = responseHandler(async (req) => {
     capacidad,
     activo,
     image,
-    salonId, // Asegurarse de enviar el ID del salón correctamente
+    salonId,
+    salonNombre, // Asegurarse de enviar el nombre del salón correctamente
     descripcion,
   });
 
@@ -89,8 +91,8 @@ const deleteEventoFisicoHandler = responseHandler(async (req) => {
 });
 
 const addSalonEventoHandler = responseHandler(async (req) => {
-  const { eventoId, salonId } = req.body;
-  const result = await addSalonEventoController(salonId, eventoId);
+  const { eventoId, salonId, salonNombre } = req.body; // Incluye salonNombre
+  const result = await addSalonEventoController(salonId, eventoId, salonNombre);
   return { data: result, status: 201 };
 });
 

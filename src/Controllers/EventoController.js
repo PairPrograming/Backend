@@ -10,6 +10,7 @@ const EVENT_ATTRIBUTES = [
   "capacidad",
   "activo",
   "salonId",
+  "salonNombre", // Nuevo campo agregado
   "descripcion",
 ];
 
@@ -55,7 +56,7 @@ const getEventoController = errorHandler(async (id) => {
       {
         model: Salones,
         through: { attributes: [] },
-        attributes: ["id", "salonId", "capacidad"],
+        attributes: ["id", "salonId", "capacidad", "nombre"], // Incluye el nombre del salón
       },
     ],
   });
@@ -68,7 +69,7 @@ const getEventoController = errorHandler(async (id) => {
 });
 
 const addEventoController = errorHandler(async (data) => {
-  const { salonId, ...eventoData } = data;
+  const { salonId, salonNombre, ...eventoData } = data;
 
   // Verificar si el salón existe
   if (salonId) {
@@ -85,7 +86,7 @@ const addEventoController = errorHandler(async (data) => {
   // Crear el evento
   const [existingEvento, created] = await Eventos.findOrCreate({
     where: { nombre: eventoData.nombre },
-    defaults: { ...eventoData, salonId },
+    defaults: { ...eventoData, salonId, salonNombre },
   });
 
   if (!created) {
@@ -105,7 +106,7 @@ const modEventoController = errorHandler(async (id, data) => {
     throw new Error("Evento no encontrado");
   }
 
-  const { salonId, ...eventoData } = data;
+  const { salonId, salonNombre, ...eventoData } = data;
 
   // Verificar si el salón existe si se está actualizando
   if (salonId) {
@@ -124,7 +125,7 @@ const modEventoController = errorHandler(async (id, data) => {
   }
 
   // Actualizar los datos del evento
-  await evento.update({ ...eventoData, salonId });
+  await evento.update({ ...eventoData, salonId, salonNombre });
 
   return { success: true, message: "Información actualizada correctamente" };
 });
@@ -176,27 +177,29 @@ const deleteEventoFisicoController = errorHandler(async (id) => {
   }
 });
 
-const addSalonEventoController = errorHandler(async (salonId, eventoId) => {
-  const [salon, evento] = await Promise.all([
-    Salones.findByPk(salonId),
-    Eventos.findByPk(eventoId),
-  ]);
+const addSalonEventoController = errorHandler(
+  async (salonId, eventoId, salonNombre) => {
+    const [salon, evento] = await Promise.all([
+      Salones.findByPk(salonId),
+      Eventos.findByPk(eventoId),
+    ]);
 
-  if (!salon || !evento) {
-    throw new Error("No se encontró el evento o el salón");
+    if (!salon || !evento) {
+      throw new Error("No se encontró el evento o el salón");
+    }
+
+    const [_, created] = await SalonesEventos.findOrCreate({
+      where: { salonId, eventoId },
+      defaults: { salonId, eventoId, salonNombre },
+    });
+
+    if (!created) {
+      throw new Error("El evento ya está asociado a este salón");
+    }
+
+    return { success: true, message: "Salón agregado al evento exitosamente" };
   }
-
-  const [_, created] = await SalonesEventos.findOrCreate({
-    where: { salonId, eventoId },
-    defaults: { salonId, eventoId },
-  });
-
-  if (!created) {
-    throw new Error("El evento ya está asociado a este salón");
-  }
-
-  return { success: true, message: "Salón agregado al evento exitosamente" };
-});
+);
 
 const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
   const [salon, evento] = await Promise.all([

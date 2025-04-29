@@ -57,6 +57,11 @@ module.exports = (sequelize) => {
         comment:
           "Nombre o identificador del salón donde se realizará el evento",
       },
+      salonNombre: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Nombre del salón donde se realizará el evento",
+      },
       descripcion: {
         type: DataTypes.TEXT,
         allowNull: true,

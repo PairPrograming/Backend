@@ -39,7 +39,7 @@ routeEvento.patch("/:id", deleteEventoLogicHandler);
 // Physical delete of an event
 routeEvento.delete("/:id", deleteEventoFisicoHandler);
 
-// Add a salon to an event
+// Add a salon to an event (includes salonNombre)
 routeEvento.post("/esalon", addSalonEventoHandler);
 
 // Remove a salon from an event
