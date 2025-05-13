@@ -25,7 +25,7 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         validate: {
-          min: 1, // Evita valores negativos o duración 0
+          min: 1,
         },
         comment: "Duración en minutos",
       },
@@ -34,13 +34,13 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 1,
         validate: {
-          min: 1, // Asegura que sea un número positivo
+          min: 1,
         },
       },
       activo: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
+        defaultValue: true, // Changed default to true for better UX
       },
       image: {
         type: DataTypes.STRING,
@@ -51,7 +51,31 @@ module.exports = (sequelize) => {
           },
         },
       },
+      salonId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment:
+          "Nombre o identificador del salón donde se realizará el evento",
+      },
+      salonNombre: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Nombre del salón donde se realizará el evento",
+      },
+      descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "Descripción detallada del evento",
+      },
     },
-    { timestamps: true }
+    {
+      timestamps: true,
+      indexes: [
+        // Add index for common queries
+        { fields: ["nombre"] },
+        { fields: ["fecha"] },
+        { fields: ["activo"] },
+      ],
+    }
   );
 };

@@ -4,21 +4,45 @@ const {
   getEventoGridHandler,
   addEventoHandler,
   modEventoHandler,
-  deleteEventoLogicHandler, // Nuevo handler para borrado lógico
-  deleteEventoFisicoHandler, // Nuevo handler para borrado físico
-  addSalonEventoHandler, //asociar salon a evenbt desde el modal de el evento
-  deleteSalonEventoHandler //eliminar el salon del evento odesde el modal
+  deleteEventoLogicHandler,
+  deleteEventoFisicoHandler,
+  addSalonEventoHandler,
+  deleteSalonEventoHandler,
 } = require("../Handlers/EventoHandler");
-const { route } = require("./routeSalon");
 
 const routeEvento = Router();
 
-routeEvento.get("/:id", getEventoHandler);
+// Apply middleware for all routes
+routeEvento.use((req, res, next) => {
+  // Set cache control headers
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+});
+
+// Get all events with optional filters
 routeEvento.get("/", getEventoGridHandler);
+
+// Get event by ID
+routeEvento.get("/:id", getEventoHandler);
+
+// Create a new event
 routeEvento.post("/", addEventoHandler);
+
+// Update an existing event
 routeEvento.put("/:id", modEventoHandler);
-routeEvento.patch("/:id", deleteEventoLogicHandler); // Ruta para borrado lógico
-routeEvento.delete("/:id", deleteEventoFisicoHandler); // Ruta para borrado físico
-routeEvento.post("/esalon/", addSalonEventoHandler);
-routeEvento.delete("/:eventoId/:salonId", deleteSalonEventoHandler);
+
+// Logical delete of an event
+routeEvento.patch("/:id", deleteEventoLogicHandler);
+
+// Physical delete of an event
+routeEvento.delete("/:id", deleteEventoFisicoHandler);
+
+// Add a salon to an event (includes salonNombre)
+routeEvento.post("/esalon", addSalonEventoHandler);
+
+// Remove a salon from an event
+routeEvento.delete("/esalon/:eventoId/:salonId", deleteSalonEventoHandler);
+
 module.exports = routeEvento;
