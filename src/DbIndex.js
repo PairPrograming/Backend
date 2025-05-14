@@ -1,6 +1,7 @@
 const { Sequelize } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
+const Ordendetalle = require("./models/Ordendetalle");
 require("dotenv").config();
 
 const { LINKDB } = process.env;
@@ -70,10 +71,13 @@ const {
   Invitados,
   Salones,
   Eventos,
-  Metodo_de_pago,
+  MetodoDePago,
   Punto_de_venta,
   Tickets,
   Image,
+  Orden,
+  Pago,
+  DetalleDeOrden
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -110,7 +114,7 @@ Eventos.belongsToMany(Salones, {
   through: "SalonesEventos",
   foreignKey: "eventoId",
 });
-
+/*
 // tipo de pago / punto de venta
 Metodo_de_pago.belongsToMany(Punto_de_venta, {
   through: "metodosPago",
@@ -120,7 +124,7 @@ Punto_de_venta.belongsToMany(Metodo_de_pago, {
   through: "metodosPago",
   foreignKey: "puntoId",
 });
-
+*/
 // Invitados / Users
 Users.hasMany(Invitados, { foreignKey: "userId" });
 Invitados.belongsTo(Users, { foreignKey: "userId" });
@@ -128,6 +132,21 @@ Invitados.belongsTo(Users, { foreignKey: "userId" });
 // Invitados / Eventos
 Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
 Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
+
+// Pago / Orden / Metodo de pago
+Pago.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
+MetodoDePago.hasMany(Pago, { foreignKey: "metodoDeCobroId" });
+Orden.hasMany(Pago, { foreignKey: "ordenId" });
+Pago.belongsTo(Orden, { foreignKey: "ordenId" });
+
+Orden.hasMany(DetalleDeOrden, { foreignKey: "ordenId" });
+DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
+
+// Tickets / Orden / Eventos
+Eventos.hasMany(Tickets, { foreignKey: "eventoId" });
+Tickets.belongsTo(Eventos, { foreignKey: "eventoId" });
+Orden.hasMany(Tickets, { foreignKey: "ordenId" });
+Tickets.belongsTo(Orden, { foreignKey: "ordenId" });
 
 // Images / Eventos
 Eventos.hasMany(Image, {
