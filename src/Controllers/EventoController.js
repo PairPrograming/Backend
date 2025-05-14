@@ -52,13 +52,6 @@ const getEventosGridController = errorHandler(async (filters = {}) => {
 const getEventoController = errorHandler(async (id) => {
   const result = await Eventos.findByPk(id, {
     attributes: EVENT_ATTRIBUTES,
-    include: [
-      {
-        model: Salones,
-        through: { attributes: [] },
-        attributes: ["id", "salonId", "capacidad", "nombre"], // Incluye el nombre del salón
-      },
-    ],
   });
 
   if (!result) {

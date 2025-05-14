@@ -2,7 +2,7 @@ const { DataTypes, UUIDV4 } = require("sequelize");
 
 module.exports = (sequelize) => {
   sequelize.define(
-    "Metodo_de_pago",
+    "MetodoDePago",
     {
       Id: {
         type: DataTypes.UUID,
@@ -11,7 +11,12 @@ module.exports = (sequelize) => {
         defaultValue: UUIDV4,
       },
       tipo_de_cobro: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM(
+          "Transferencia", 
+          "Mercadopago", 
+          "Postnet", 
+          "Efectivo"
+        ),
         allowNull: false,
       },
       comision: {
