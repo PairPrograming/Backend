@@ -24,7 +24,7 @@ const  crearOrdenConDetalles = async(data) => {
           precio_unitario: detalle.precio_unitario,
           total: totalDetalle,
           ordenId: orden.id,
-          entradaId: detalle.entradaId, // si lo tienes
+          entradaId: detalle.entradaId,
         },
         { transaction: t }
       );
