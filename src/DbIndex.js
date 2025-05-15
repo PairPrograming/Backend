@@ -77,7 +77,8 @@ const {
   Image,
   Orden,
   Pago,
-  DetalleDeOrden
+  DetalleDeOrden,
+  Entrada
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -141,6 +142,10 @@ Pago.belongsTo(Orden, { foreignKey: "ordenId" });
 
 Orden.hasMany(DetalleDeOrden, { foreignKey: "ordenId" });
 DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
+Entrada.belongsTo(Eventos, { foreignKey: "eventoId" });
+Eventos.hasMany(Entrada, { foreignKey: "eventoId" });
+Entrada.hasMany(DetalleDeOrden, { foreignKey: "entradaId" });
+DetalleDeOrden.belongsTo(Entrada, { foreignKey: "entradaId" });
 
 // Tickets / Orden / Eventos
 Eventos.hasMany(Tickets, { foreignKey: "eventoId" });
