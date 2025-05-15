@@ -106,12 +106,12 @@ module.exports = (sequelize) => {
         },
       },
       rol: {
-        type: DataTypes.ENUM("admin", "vendor", "comun"),
+        type: DataTypes.ENUM("admin", "vendor", "comun", "graduado"),
         allowNull: false,
         defaultValue: "comun", // Por defecto será 'vendor'
         validate: {
           isIn: {
-            args: [["admin", "vendor", "comun"]],
+            args: [["admin", "vendor", "comun", "graduado"]],
             msg: "El rol debe ser 'admin' o 'vendor'",
           },
         },
