@@ -1,20 +1,51 @@
 const { DataTypes, UUIDV4 } = require("sequelize");
+
 module.exports = (sequelize) => {
-     sequelize.define("Pago", {
-      id: {
-        type: DataTypes.UUID,
-        primaryKey: true,
-        defaultValue: UUIDV4,
-      },
-      monto: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-      },
-      status: {
-        type: DataTypes.STRING, // ejemplo: 'completed', 'failed'
-        allowNull: false,
-      },
-    }, {
-      timestamps: true,
-    });
-  };
+  sequelize.define("Pago", {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: UUIDV4,
+    },
+    monto: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    comision: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    impuestos: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    total: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    estatus: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    fecha_pago: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    referencia: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    descripcion: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    error_message: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+  }, {
+    timestamps: true,
+  });
+};

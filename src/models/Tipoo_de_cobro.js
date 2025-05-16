@@ -19,8 +19,12 @@ module.exports = (sequelize) => {
         ),
         allowNull: false,
       },
+      impuesto: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
       comision: {
-        type: DataTypes.DECIMAL(10, 2), // Ajusta el tipo según lo que necesites
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
       },
     },
