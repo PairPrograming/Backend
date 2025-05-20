@@ -9,6 +9,26 @@ module.exports = (sequelize) => {
         primaryKey: true,
         defaultValue: UUIDV4,
       },
+      nombre_cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      email_cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: { isEmail: true },
+      },
+      telefono_cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      dni_cliente: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          len: [6, 20],
+        },
+      },
       total: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
@@ -28,6 +48,23 @@ module.exports = (sequelize) => {
         allowNull: true, // Se completará una vez el pago sea exitoso
       },
     },
-    { timestamps: true }
+    { timestamps: true,
+      hooks: {
+        beforeValidate: (orden) => {
+          // Si hay userId, los campos de cliente son opcionales
+          if (orden.userId) {
+            return;
+          }
+          
+          // Si no hay userId, los campos de cliente son obligatorios
+          const requiredFields = ['nombre_cliente', 'email_cliente', 'telefono_cliente', 'dni_cliente'];
+          for (const field of requiredFields) {
+            if (!orden[field]) {
+              throw new Error(`El campo ${field} es obligatorio cuando no hay un usuario registrado`);
+            }
+          }
+        }
+      }
+    }
   );
 };

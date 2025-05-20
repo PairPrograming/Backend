@@ -134,16 +134,22 @@ Invitados.belongsTo(Users, { foreignKey: "userId" });
 Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
 Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
 
-// Pago / Orden / Metodo de pago
+// Pago / Orden y Detalle / Metodo de pago / Entradas 
 Pago.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
 MetodoDePago.hasMany(Pago, { foreignKey: "metodoDeCobroId" });
+
 Orden.hasMany(Pago, { foreignKey: "ordenId" });
 Pago.belongsTo(Orden, { foreignKey: "ordenId" });
 
+Users.hasMany(Orden, { foreignKey: { name: "userId", allowNull: true } });
+Orden.belongsTo(Users, { foreignKey: { name: "userId", allowNull: true } });
+
 Orden.hasMany(DetalleDeOrden, { foreignKey: "ordenId" });
 DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
-Entrada.belongsTo(Eventos, { foreignKey: "eventoId" });
+
 Eventos.hasMany(Entrada, { foreignKey: "eventoId" });
+Entrada.belongsTo(Eventos, { foreignKey: "eventoId" });
+
 Entrada.hasMany(DetalleDeOrden, { foreignKey: "entradaId" });
 DetalleDeOrden.belongsTo(Entrada, { foreignKey: "entradaId" });
 
