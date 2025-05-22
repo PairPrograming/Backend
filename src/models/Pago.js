@@ -41,6 +41,16 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    fecha_cancelacion: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Fecha en que se canceló el pago'
+    },  
+    motivo_cancelacion: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Motivo por el cual se canceló el pago'
+    },
     error_message: {
       type: DataTypes.STRING,
       allowNull: true,

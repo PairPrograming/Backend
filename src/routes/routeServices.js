@@ -1,12 +1,16 @@
 const { Router } = require("express");
-const {
-    procesarPagoHandler
-} = require('../utils/servicePayment')
-const { createPagoHandler } = require('../Handlers/PagoHandler')
+const { 
+    createPagoHandler,
+    obtenerPagoHandler,
+    cancelarPagoHandler
+} = require('../Handlers/PagoHandler')
+
 const routeServices = Router();
 
-routeServices.post("/", procesarPagoHandler);
-
 routeServices.post("/pago", createPagoHandler);
+
+routeServices.get("/pago/:id", obtenerPagoHandler);
+
+routeServices.put("/pago/:id/cancelar", cancelarPagoHandler);
 
 module.exports = routeServices;
