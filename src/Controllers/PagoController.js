@@ -1,7 +1,19 @@
 const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
 
 const crearPagoController = async (data) => {
-  const { ordenId, metodoDeCobroId, estatus, referencia, descripcion, montoRecibido } = data;
+  const { 
+    ordenId, 
+    metodoDeCobroId, 
+    estatus, 
+    referencia, 
+    descripcion, 
+    montoRecibido,
+    // Nuevos campos del modelo
+    imagen,
+    error_message,
+    fecha_cancelacion,
+    motivo_cancelacion
+  } = data;
   
   if (!ordenId) {
     return { success: false, message: "El ID de la orden es requerido" };
@@ -168,7 +180,7 @@ const crearPagoController = async (data) => {
       };
     }
 
-
+    // Modificado: Ahora incluye todos los campos del modelo Pago
     const pago = await Pago.create({
       monto: montoBase,
       comision: comisionMonto,
@@ -180,6 +192,11 @@ const crearPagoController = async (data) => {
       descripcion: descripcion || null,
       ordenId,
       metodoDeCobroId,
+      // Nuevos campos añadidos
+      imagen: imagen || null,
+      error_message: error_message || null,
+      fecha_cancelacion: fecha_cancelacion || null,
+      motivo_cancelacion: motivo_cancelacion || null
     }, { transaction: t });
 
     for (const detalle of orden.DetalleDeOrdens) {
@@ -214,12 +231,10 @@ const crearPagoController = async (data) => {
     };
 
   } catch (error) {
-
     if (!t.finished) {
       await t.rollback();
     }
     
-
     console.error(`❌ Error al crear pago - Orden: ${ordenId}:`, error.message);
     
     return { 

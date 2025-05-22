@@ -11,6 +11,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+    imagen: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     comision: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
