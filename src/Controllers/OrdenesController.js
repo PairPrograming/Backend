@@ -1,5 +1,4 @@
-const { Orden, DetalleDeOrden, conn } = require('../DbIndex');
-const { use } = require('../routes');
+const { Orden, DetalleDeOrden, Entrada, Eventos, Salones, Punto_de_venta, Users, conn } = require('../DbIndex');
 
 const crearOrdenConDetalles = async (data) => {
   const { estado, detalles, userId, dni_cliente,  nombre_cliente, email_cliente, telefono_cliente } = data;
@@ -35,16 +34,20 @@ const crearOrdenConDetalles = async (data) => {
       const totalDetalle = detalle.cantidad * detalle.precio_unitario;
       totalOrden += totalDetalle;
 
-      await DetalleDeOrden.create(
-        {
+      await DetalleDeOrden.findOrCreate({
+        where: {
+          ordenId: orden.id,
+          entradaId: detalle.entradaId
+        },
+        defaults: {
           cantidad: detalle.cantidad,
           precio_unitario: detalle.precio_unitario,
           total: totalDetalle,
           ordenId: orden.id,
           entradaId: detalle.entradaId,
         },
-        { transaction: t }
-      );
+        transaction: t 
+      });
     }
 
     orden.total = totalOrden;
@@ -58,6 +61,86 @@ const crearOrdenConDetalles = async (data) => {
   }
 };
 
+const getOrdenesController = async (id) => {
+  if (!id) {
+    return { success: false, message: "Falta id" };
+  }
+  try {
+    const detalles = await DetalleDeOrden.findAll({
+      where: { ordenId: id }, // Filtramos por la orden específica
+      include: [
+        {
+          model: Entrada,
+          include: [
+            {
+              model: Eventos,
+              attributes: ['nombre', "salonId"],
+            }
+          ],
+        },
+        {
+          model: Orden,
+          include: [
+            {
+              model: Users,
+              attributes: ['nombre', 'email'], // Ajusta según los campos que quieras
+            }
+          ],
+        }
+      ],
+    });
+
+    if (!detalles.length) {
+      return null;
+    }
+
+    const orden = detalles[0].Orden;
+    const detallesCompactados = detalles.map(detalle => ({
+      id: detalle.id,
+      cantidad: detalle.cantidad,
+      precio_unitario: detalle.precio_unitario,
+      total: detalle.total,
+      entrada: {
+        id: detalle.Entrada.id,
+        tipo_entrada: detalle.Entrada.tipo_entrada,
+        precio: detalle.Entrada.precio,
+        cantidad: detalle.Entrada.cantidad,
+        estatus: detalle.Entrada.estatus,
+        evento: {
+          nombre: detalle.Entrada.Evento.nombre,
+          salonId: detalle.Entrada.Evento.salonId,
+        }
+      }
+    }));
+    const salonId = detallesCompactados[0].entrada.evento.salonId
+    const salon = await Salones.findByPk(salonId, {
+      include: {
+        model: Punto_de_venta,
+        through: { attributes: [] },
+        attributes: ['id', 'razon', 'direccion', "telefono", "cuit"], // ajusta según tus columnas
+      }
+    });
+    const ordenCompactada = {
+      id: orden.id,
+      nombre_cliente: orden.nombre_cliente,
+      email_cliente: orden.email_cliente,
+      telefono_cliente: orden.telefono_cliente,
+      dni_cliente: orden.dni_cliente,
+      total: orden.total,
+      estado: orden.estado,
+      fecha_creacion: orden.fecha_creacion,
+      user: orden.User ? { nombre: orden.User.nombre, email: orden.User.email } : null,
+      detalles: detallesCompactados,
+      salon
+    };
+    return { success: true, data: ordenCompactada };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
+
 module.exports = {
-  crearOrdenConDetalles
+  crearOrdenConDetalles,
+  getOrdenesController
 }
