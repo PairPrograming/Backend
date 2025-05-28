@@ -326,9 +326,62 @@ const cancelarPagoController = async (pagoId, motivo) => {
     return { success: false, message: error.message };
   }
 };
+const getGridPagosController = async (filtros = {}) => {
+  console.log('Filtros recibidos:', filtros);
+  try {
+    const { 
+      estado, 
+      fechaDesde, 
+      fechaHasta, 
+      limit = 50, 
+      offset = 0,
+      orderBy = 'estatus',
+      orderDirection = 'DESC'
+    } = filtros;
 
+    const condiciones = {};
+    
+    if (estado) {
+      condiciones.estatus = estado;
+    }
+    
+    const allowedFields = ['monto', 'estatus']; // actualiza con tus columnas reales
+    const allowedDirections = ['ASC', 'DESC'];
+    
+    const sortField = allowedFields.includes(orderBy) ? orderBy : 'monto';
+    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase()) ? orderDirection.toUpperCase() : 'ASC';
+    
+    const safeLimit = Number.isInteger(parseInt(limit)) ? parseInt(limit) : 10;
+    const safeOffset = Number.isInteger(parseInt(offset)) ? parseInt(offset) : 0;
+    
+    const result = await Pago.findAll({
+      where: condiciones,
+      order: [[sortField, sortDirection]],
+      limit: safeLimit,
+      offset: safeOffset
+    });
+
+    const total = await Pago.count({ where: condiciones });
+
+    return { 
+      success: true, 
+      data: {
+        pagos: result,
+        pagination: {
+          total,
+          limit: safeLimit,
+          offset: safeOffset,
+          hasMore: (safeOffset + safeLimit) < total
+        }
+      }
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
 module.exports = { 
   crearPagoController,
   obtenerPagoController,
-  cancelarPagoController
+  cancelarPagoController,
+  getGridPagosController
 };

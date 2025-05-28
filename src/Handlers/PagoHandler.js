@@ -1,7 +1,8 @@
 const {   
     crearPagoController,
     obtenerPagoController,
-    cancelarPagoController 
+    cancelarPagoController,
+    getGridPagosController 
 } = require('../Controllers/PagoController')
 const { genericHandler } = require('../utils/Handler')
 
@@ -16,10 +17,12 @@ const cancelarPagoHandler = genericHandler((data) => {
     const { id: pagoId, motivo } = data;
     return cancelarPagoController(pagoId, motivo);
 });
+const getGridPagosHandler = genericHandler((data) => {return getGridPagosController(data);})
 
 // ✅ Exportar TODOS los handlers
 module.exports = { 
     createPagoHandler,
     obtenerPagoHandler,
-    cancelarPagoHandler
+    cancelarPagoHandler,
+    getGridPagosHandler
 }
