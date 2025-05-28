@@ -2,7 +2,8 @@ const { Router } = require("express");
 const { 
     createPagoHandler,
     obtenerPagoHandler,
-    cancelarPagoHandler
+    cancelarPagoHandler,
+    getGridPagosHandler
 } = require('../Handlers/PagoHandler')
 
 const routeServices = Router();
@@ -10,6 +11,8 @@ const routeServices = Router();
 routeServices.post("/pago", createPagoHandler);
 
 routeServices.get("/pago/:id", obtenerPagoHandler);
+
+routeServices.get("/pago/", getGridPagosHandler);
 
 routeServices.put("/pago/:id/cancelar", cancelarPagoHandler);
 
