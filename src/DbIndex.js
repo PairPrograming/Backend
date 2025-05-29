@@ -144,7 +144,7 @@ Pago.belongsTo(Orden, { foreignKey: "ordenId" });
 Users.hasMany(Orden, { foreignKey: { name: "userId", allowNull: true } });
 Orden.belongsTo(Users, { foreignKey: { name: "userId", allowNull: true } });
 
-Orden.hasMany(DetalleDeOrden, { foreignKey: "ordenId" });
+Orden.hasMany(DetalleDeOrden, { foreignKey: "ordenId", onDelete:'CASCADE', onUpdate:'CASCADE' });
 DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
 
 Eventos.hasMany(Entrada, { foreignKey: "eventoId" });
