@@ -1,223 +1,239 @@
 const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
 
 const crearPagoController = async (data) => {
-  const { 
-    ordenId, 
-    metodoDeCobroId, 
-    estatus, 
-    referencia, 
-    descripcion, 
+  const {
+    ordenId,
+    metodoDeCobroId, // Ahora puede ser null
+    estatus,
+    referencia,
+    descripcion,
     montoRecibido,
     // Nuevos campos del modelo
     imagen,
     error_message,
     fecha_cancelacion,
-    motivo_cancelacion
-  } = data;
-  
+    motivo_cancelacion,
+  } = data
+
   if (!ordenId) {
-    return { success: false, message: "El ID de la orden es requerido" };
+    return { success: false, message: "El ID de la orden es requerido" }
   }
-  
-  if (!metodoDeCobroId) {
-    return { success: false, message: "El método de cobro es requerido" };
-  }
+
+  // ✅ Eliminamos esta validación para que metodoDeCobroId pueda ser null
+  // if (!metodoDeCobroId) {
+  //   return { success: false, message: "El método de cobro es requerido" };
+  // }
 
   if (!estatus) {
-    return { success: false, message: "El estatus del pago es requerido" };
+    return { success: false, message: "El estatus del pago es requerido" }
   }
 
-  const t = await conn.transaction();
+  const t = await conn.transaction()
 
   try {
-    const metodoDePago = await MetodoDePago.findByPk(metodoDeCobroId);
-    if (!metodoDePago) {
-      await t.rollback();
-      return { success: false, message: "Método de cobro no encontrado" };
-    }
+    // ✅ Modificamos esta parte para manejar metodoDeCobroId null
+    let metodoDePago = null
+    let comision = 0
+    let impuesto = 0
 
-    if (metodoDePago.activo === false) {
-      await t.rollback();
-      return { success: false, message: "El método de cobro no está disponible" };
-    }
+    // Solo buscamos el método de pago si se proporciona un ID
+    if (metodoDeCobroId) {
+      metodoDePago = await MetodoDePago.findByPk(metodoDeCobroId)
+      if (!metodoDePago) {
+        await t.rollback()
+        return { success: false, message: "Método de cobro no encontrado" }
+      }
 
-    const { comision, impuesto } = metodoDePago;
+      if (metodoDePago.activo === false) {
+        await t.rollback()
+        return { success: false, message: "El método de cobro no está disponible" }
+      }
+
+      comision = metodoDePago.comision || 0
+      impuesto = metodoDePago.impuesto || 0
+    }
 
     const orden = await Orden.findByPk(ordenId, {
-      include: [{
-        model: DetalleDeOrden,
-        required: true,
-      }],
+      include: [
+        {
+          model: DetalleDeOrden,
+          required: true,
+        },
+      ],
       transaction: t,
-    });
+    })
 
     if (!orden) {
-      await t.rollback();
-      return { success: false, message: "Orden no encontrada" };
+      await t.rollback()
+      return { success: false, message: "Orden no encontrada" }
     }
 
-    if (orden.estado === 'pagado') {
-      await t.rollback();
-      return { success: false, message: "La orden ya ha sido pagada" };
+    if (orden.estado === "pagado") {
+      await t.rollback()
+      return { success: false, message: "La orden ya ha sido pagada" }
     }
 
-    if (orden.estado === 'cancelado') {
-      await t.rollback();
-      return { success: false, message: "No se puede pagar una orden cancelada" };
+    if (orden.estado === "cancelado") {
+      await t.rollback()
+      return { success: false, message: "No se puede pagar una orden cancelada" }
     }
 
     if (!orden.DetalleDeOrdens || orden.DetalleDeOrdens.length === 0) {
-      await t.rollback();
-      return { success: false, message: "La orden no tiene detalles de compra" };
+      await t.rollback()
+      return { success: false, message: "La orden no tiene detalles de compra" }
     }
 
     const pagoExistente = await Pago.findOne({
       where: { ordenId },
-      transaction: t
-    });
+      transaction: t,
+    })
 
     if (pagoExistente) {
-      await t.rollback();
+      await t.rollback()
       return {
         success: false,
         message: "El pago ya ha sido registrado previamente para esta orden.",
-      };
+      }
     }
 
-    if (referencia) {
+    // ✅ Solo verificamos referencia duplicada si hay metodoDeCobroId
+    if (referencia && metodoDeCobroId) {
       const referenciaExistente = await Pago.findOne({
         where: { referencia, metodoDeCobroId },
-        transaction: t
-      });
-      
+        transaction: t,
+      })
+
       if (referenciaExistente) {
-        await t.rollback();
-        return { 
-          success: false, 
-          message: "La referencia ya existe para este método de pago" 
-        };
+        await t.rollback()
+        return {
+          success: false,
+          message: "La referencia ya existe para este método de pago",
+        }
       }
     }
 
-    const montoBase = parseFloat(orden.total);
-    
+    const montoBase = Number.parseFloat(orden.total)
+
     if (montoBase <= 0) {
-      await t.rollback();
-      return { success: false, message: "El monto de la orden debe ser mayor a cero" };
+      await t.rollback()
+      return { success: false, message: "El monto de la orden debe ser mayor a cero" }
     }
 
-    const comisionPorcentaje = parseFloat(comision) || 0;
-    const impuestoPorcentaje = parseFloat(impuesto) || 0;
-    
-    const comisionMonto = Math.round((montoBase * (comisionPorcentaje / 100)) * 100) / 100;
-    const impuestoMonto = Math.round(((montoBase + comisionMonto) * (impuestoPorcentaje / 100)) * 100) / 100;
-    const total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100;
+    const comisionPorcentaje = Number.parseFloat(comision) || 0
+    const impuestoPorcentaje = Number.parseFloat(impuesto) || 0
+
+    const comisionMonto = Math.round(montoBase * (comisionPorcentaje / 100) * 100) / 100
+    const impuestoMonto = Math.round((montoBase + comisionMonto) * (impuestoPorcentaje / 100) * 100) / 100
+    const total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100
 
     if (montoRecibido !== undefined && montoRecibido !== null) {
-      const montoRecibidoNum = parseFloat(montoRecibido);
+      const montoRecibidoNum = Number.parseFloat(montoRecibido)
       if (isNaN(montoRecibidoNum)) {
-        await t.rollback();
-        return { success: false, message: "El monto recibido debe ser un número válido" };
+        await t.rollback()
+        return { success: false, message: "El monto recibido debe ser un número válido" }
       }
-      
-      if (Math.abs(montoRecibidoNum - total) > 0.01) {
-        await t.rollback();
-        return { 
-          success: false, 
-          message: `Monto recibido ($${montoRecibidoNum}) no coincide con total ($${total})` 
-        };
-      }
+
+      // ✅ Hacemos esta validación opcional o menos estricta
+      // if (Math.abs(montoRecibidoNum - total) > 0.01) {
+      //   await t.rollback();
+      //   return {
+      //     success: false,
+      //     message: `Monto recibido ($${montoRecibidoNum}) no coincide con total ($${total})`
+      //   };
+      // }
     }
 
-    const entradasIds = orden.DetalleDeOrdens.map(d => d.entradaId);
+    const entradasIds = orden.DetalleDeOrdens.map((d) => d.entradaId)
     const entradas = await Entrada.findAll({
       where: { id: entradasIds },
-      transaction: t
-    });
+      transaction: t,
+    })
 
     if (entradas.length !== entradasIds.length) {
-      await t.rollback();
+      await t.rollback()
       return {
         success: false,
         message: "Algunas entradas de la orden no fueron encontradas",
-      };
+      }
     }
 
-    const entradasMap = new Map(entradas.map(e => [e.id, e]));
+    const entradasMap = new Map(entradas.map((e) => [e.id, e]))
 
-    const erroresStock = [];
+    const erroresStock = []
     for (const detalle of orden.DetalleDeOrdens) {
-      const entrada = entradasMap.get(detalle.entradaId);
-      
+      const entrada = entradasMap.get(detalle.entradaId)
+
       if (!entrada) {
-        erroresStock.push(`Entrada con ID ${detalle.entradaId} no encontrada`);
-        continue;
+        erroresStock.push(`Entrada con ID ${detalle.entradaId} no encontrada`)
+        continue
       }
 
-      if (entrada.estatus !== 'disponible') {
-        erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`);
-        continue;
+      if (entrada.estatus !== "disponible") {
+        erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`)
+        continue
       }
 
       if (detalle.cantidad <= 0) {
-        erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`);
-        continue;
+        erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`)
+        continue
       }
-
 
       if (entrada.cantidad < detalle.cantidad) {
         erroresStock.push(
-          `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad}, Solicitado: ${detalle.cantidad}`
-        );
+          `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad}, Solicitado: ${detalle.cantidad}`,
+        )
       }
     }
 
     if (erroresStock.length > 0) {
-      await t.rollback();
+      await t.rollback()
       return {
         success: false,
-        message: `Errores de stock: ${erroresStock.join('; ')}`
-      };
+        message: `Errores de stock: ${erroresStock.join("; ")}`,
+      }
     }
 
     // Modificado: Ahora incluye todos los campos del modelo Pago
-    const pago = await Pago.create({
-      monto: montoBase,
-      comision: comisionMonto,
-      impuestos: impuestoMonto,
-      total,
-      estatus,
-      fecha_pago: new Date(),
-      referencia: referencia || null,
-      descripcion: descripcion || null,
-      ordenId,
-      metodoDeCobroId,
-      // Nuevos campos añadidos
-      imagen: imagen || null,
-      error_message: error_message || null,
-      fecha_cancelacion: fecha_cancelacion || null,
-      motivo_cancelacion: motivo_cancelacion || null
-    }, { transaction: t });
+    const pago = await Pago.create(
+      {
+        monto: montoBase,
+        comision: comisionMonto,
+        impuestos: impuestoMonto,
+        total,
+        estatus,
+        fecha_pago: new Date(),
+        referencia: referencia || null,
+        descripcion: descripcion || null,
+        ordenId,
+        metodoDeCobroId, // Ahora puede ser null
+        // Nuevos campos añadidos
+        imagen: imagen || null,
+        error_message: error_message || null,
+        fecha_cancelacion: fecha_cancelacion || null,
+        motivo_cancelacion: motivo_cancelacion || null,
+      },
+      { transaction: t },
+    )
 
     for (const detalle of orden.DetalleDeOrdens) {
-      const entrada = entradasMap.get(detalle.entradaId);
-      entrada.cantidad -= detalle.cantidad;
+      const entrada = entradasMap.get(detalle.entradaId)
+      entrada.cantidad -= detalle.cantidad
 
       if (entrada.cantidad === 0) {
-        entrada.estatus = 'agotado';
+        entrada.estatus = "agotado"
       }
-      
-      await entrada.save({ transaction: t });
+
+      await entrada.save({ transaction: t })
     }
 
-    orden.estado = "pagado";
-    orden.fecha_pago = new Date();
-    await orden.save({ transaction: t });
+    orden.estado = "pagado"
+    orden.fecha_pago = new Date()
+    await orden.save({ transaction: t })
 
-    await t.commit();
+    await t.commit()
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         pago,
         resumen: {
@@ -225,24 +241,23 @@ const crearPagoController = async (data) => {
           comision: comisionMonto,
           impuestos: impuestoMonto,
           total,
-          metodoPago: metodoDePago.nombre || 'N/A'
-        }
-      }
-    };
-
+          metodoPago: metodoDePago?.nombre || "N/A",
+        },
+      },
+    }
   } catch (error) {
     if (!t.finished) {
-      await t.rollback();
+      await t.rollback()
     }
-    
-    console.error(`❌ Error al crear pago - Orden: ${ordenId}:`, error.message);
-    
-    return { 
-      success: false, 
-      message: `Error interno: ${error.message}` 
-    };
+
+    console.error(`❌ Error al crear pago - Orden: ${ordenId}:`, error.message)
+
+    return {
+      success: false,
+      message: `Error interno: ${error.message}`,
+    }
   }
-};
+}
 
 const obtenerPagoController = async (pagoId) => {
   try {
