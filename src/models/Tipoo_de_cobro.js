@@ -11,21 +11,17 @@ module.exports = (sequelize) => {
         defaultValue: UUIDV4,
       },
       tipo_de_cobro: {
-        type: DataTypes.ENUM(
-          "Transferencia", 
-          "Mercadopago", 
-          "Postnet", 
-          "Efectivo"
-        ),
+       type: DataTypes.STRING(100),
         allowNull: false,
+      
       },
       impuesto: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
       },
       comision: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
       },
     },
     { timestamps: true }
