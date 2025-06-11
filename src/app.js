@@ -18,6 +18,8 @@ server.use(
       "http://localhost:3000",
       "https://backend-production-40d9.up.railway.app",
       "https://front-psi-rosy.vercel.app",
+      "https://develop-colour.vercel.app",
+      "https://backend-production-d353.up.railway.app"
     ],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
