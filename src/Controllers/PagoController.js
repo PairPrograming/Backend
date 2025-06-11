@@ -19,11 +19,6 @@ const crearPagoController = async (data) => {
     return { success: false, message: "El ID de la orden es requerido" }
   }
 
-  // ✅ Eliminamos esta validación para que metodoDeCobroId pueda ser null
-  // if (!metodoDeCobroId) {
-  //   return { success: false, message: "El método de cobro es requerido" };
-  // }
-
   if (!estatus) {
     return { success: false, message: "El estatus del pago es requerido" }
   }
@@ -31,7 +26,6 @@ const crearPagoController = async (data) => {
   const t = await conn.transaction()
 
   try {
-    // ✅ Modificamos esta parte para manejar metodoDeCobroId null
     let metodoDePago = null
     let comision = 0
     let impuesto = 0
@@ -96,7 +90,7 @@ const crearPagoController = async (data) => {
       }
     }
 
-    // ✅ Solo verificamos referencia duplicada si hay metodoDeCobroId
+    // Solo verificamos referencia duplicada si hay metodoDeCobroId
     if (referencia && metodoDeCobroId) {
       const referenciaExistente = await Pago.findOne({
         where: { referencia, metodoDeCobroId },
@@ -132,15 +126,6 @@ const crearPagoController = async (data) => {
         await t.rollback()
         return { success: false, message: "El monto recibido debe ser un número válido" }
       }
-
-      // ✅ Hacemos esta validación opcional o menos estricta
-      // if (Math.abs(montoRecibidoNum - total) > 0.01) {
-      //   await t.rollback();
-      //   return {
-      //     success: false,
-      //     message: `Monto recibido ($${montoRecibidoNum}) no coincide con total ($${total})`
-      //   };
-      // }
     }
 
     const entradasIds = orden.DetalleDeOrdens.map((d) => d.entradaId)
@@ -193,7 +178,46 @@ const crearPagoController = async (data) => {
       }
     }
 
-    // Modificado: Ahora incluye todos los campos del modelo Pago
+    // ✅ VALIDACIÓN MEJORADA PARA IMAGEN - SIEMPRE OPCIONAL
+    let imagenUrl = null
+
+    // Solo procesar imagen si existe y no está vacía
+    if (imagen && imagen !== "" && imagen !== null && imagen !== undefined) {
+      if (typeof imagen === "string") {
+        // Si es string, usarlo directamente
+        imagenUrl = imagen.trim()
+      } else if (typeof imagen === "object" && imagen !== null) {
+        // Si es objeto, intentar extraer la URL
+        if (imagen.url && typeof imagen.url === "string") {
+          imagenUrl = imagen.url.trim()
+        } else if (imagen.secure_url && typeof imagen.secure_url === "string") {
+          imagenUrl = imagen.secure_url.trim()
+        } else {
+          // Si es objeto pero no tiene url válida, ignorar
+          console.warn("Objeto imagen no válido, se ignorará:", imagen)
+          imagenUrl = null
+        }
+      } else if (Array.isArray(imagen) && imagen.length > 0) {
+        // Si es array, tomar el primer elemento válido
+        const firstItem = imagen[0]
+        if (typeof firstItem === "string") {
+          imagenUrl = firstItem.trim()
+        } else if (typeof firstItem === "object" && firstItem !== null) {
+          imagenUrl = firstItem.url || firstItem.secure_url || null
+        }
+      } else {
+        // Cualquier otro tipo, ignorar
+        console.warn("Tipo de imagen no válido, se ignorará:", typeof imagen, imagen)
+        imagenUrl = null
+      }
+
+      // Validar que la URL final sea válida
+      if (imagenUrl && (imagenUrl.length === 0 || imagenUrl === "undefined" || imagenUrl === "null")) {
+        imagenUrl = null
+      }
+    }
+
+    // Crear el pago - imagen es SIEMPRE OPCIONAL
     const pago = await Pago.create(
       {
         monto: montoBase,
@@ -205,9 +229,8 @@ const crearPagoController = async (data) => {
         referencia: referencia || null,
         descripcion: descripcion || null,
         ordenId,
-        metodoDeCobroId, // Ahora puede ser null
-        // Nuevos campos añadidos
-        imagen: imagen || null,
+        metodoDeCobroId, // Puede ser null
+        imagen: imagenUrl, // SIEMPRE OPCIONAL - puede ser null
         error_message: error_message || null,
         fecha_cancelacion: fecha_cancelacion || null,
         motivo_cancelacion: motivo_cancelacion || null,
@@ -242,6 +265,7 @@ const crearPagoController = async (data) => {
           impuestos: impuestoMonto,
           total,
           metodoPago: metodoDePago?.nombre || "N/A",
+          imagenGuardada: imagenUrl ? "Sí" : "No",
         },
       },
     }
@@ -258,6 +282,7 @@ const crearPagoController = async (data) => {
     }
   }
 }
+
 
 const obtenerPagoController = async (pagoId) => {
   try {
