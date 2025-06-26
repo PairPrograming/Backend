@@ -18,6 +18,7 @@ server.use(
       "http://localhost:3000",
       "https://backend-production-40d9.up.railway.app",
       "https://front-psi-rosy.vercel.app",
+      "https://www.ticketxevent.com/",
     ],
     credentials: true,
     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
