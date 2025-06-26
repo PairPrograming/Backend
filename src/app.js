@@ -16,6 +16,7 @@ server.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
+      "https://backend-production-40d9.up.railway.app",
       "https://front-psi-rosy.vercel.app",
       "https://www.ticketxevent.com",
       "https://ticketxevent.com",
