@@ -23,7 +23,7 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        isIn: [["disponible", "agotada", "pagado", "cancelado]],
+        isIn: [["disponible", "agotada", "pagado", "cancelado"]],
       },
     },
   }, {
