@@ -22,9 +22,6 @@ module.exports = (sequelize) => {
     estatus: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        isIn: [["disponible", "agotada", "pagado", "cancelado"]],
-      },
     },
   }, {
     timestamps: true,
