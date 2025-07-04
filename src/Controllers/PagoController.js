@@ -264,7 +264,7 @@ const crearPagoController = async (data) => {
           comision: comisionMonto,
           impuestos: impuestoMonto,
           total,
-          metodoPago: metodoDePago?.nombre || "N/A",
+          metodoPago: metodoDePago?.tipo_de_cobro || "N/A",
           imagenGuardada: imagenUrl ? "Sí" : "No",
         },
       },
