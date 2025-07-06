@@ -77,7 +77,8 @@ const {
   Orden,
   Pago,
   DetalleDeOrden,
-  Entrada
+  Entrada,
+  Contrato
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -201,6 +202,18 @@ Users.hasMany(Image, {
   scope: {
     type: "usuario",
   },
+});
+//Eventos / Contrato
+Eventos.hasOne(Contrato, {
+  foreignKey: 'eventoId',
+  as: 'contrato',
+  onDelete: 'CASCADE',
+});
+
+Contrato.belongsTo(Eventos, {
+  foreignKey: 'eventoId',
+  as: 'evento',
+  onDelete: 'CASCADE',
 });
 
 module.exports = {
