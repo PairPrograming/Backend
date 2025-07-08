@@ -10,6 +10,11 @@ const {
   deleteSalonEventoHandler,
 } = require("../Handlers/EventoHandler");
 
+const {
+  createContratoHandler, eliminarContratoHandler, 
+  obtenerContratoHandler, actContratoHandler
+} = require('../Handlers/ContratoHandler')
+
 const routeEvento = Router();
 
 // Apply middleware for all routes
@@ -44,5 +49,10 @@ routeEvento.post("/esalon", addSalonEventoHandler);
 
 // Remove a salon from an event
 routeEvento.delete("/esalon/:eventoId/:salonId", deleteSalonEventoHandler);
+
+routeEvento.post("/:id/contrato", createContratoHandler)
+routeEvento.get ("/:id/contrato/:id", obtenerContratoHandler);
+routeEvento.delete ("/:id/contrato/:id", eliminarContratoHandler);
+routeEvento.put("/:id/contrato/:id", actContratoHandler)
 
 module.exports = routeEvento;
