@@ -11,6 +11,7 @@ const routeImage = require("./routeImage");
 const routeEntrada = require("./routeEntrada");
 const routeOrden = require('./routeOrden')
 const routePaymentMethod = require('./routePaymentMethod')
+const routeContrato = require("./routeContrato")
 
 router.use("/api/users/role", routeRoles);
 router.use("/api/users", routeUsers);
@@ -23,5 +24,6 @@ router.use("/api/images/", routeImage);
 router.use("/api/entrada/", routeEntrada);
 router.use("/api/order", routeOrden);
 router.use("/api/paymentMethod", routePaymentMethod);
+router.use("/api/contrato", routeContrato);
 
 module.exports = router;

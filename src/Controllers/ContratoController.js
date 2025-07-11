@@ -77,10 +77,24 @@ const obtenerContratoController = async (id) => {
     return { success: false, message: error.message };
   }
 };
+const obtenerTodosContratoController = async () => {
+  try {
+    const contratos = await Contrato.findAll();
+    
+    if (contratos.length === 0) {
+      return { success: false, message: "No se encontraron contratos" };
+    }
+    
+    return { success: true, data: contratos };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
 
 module.exports = {
   crearContratoController,
   eliminarContratoController,
   actContratoController,
   obtenerContratoController,
+  obtenerTodosContratoController
 };
