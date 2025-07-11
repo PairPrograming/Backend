@@ -7,7 +7,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "usuarios", // Puedes cambiar el nombre de la carpeta
-    allowed_formats: ["jpg", "png", "jpeg"],
+    allowed_formats: ["jpg", "png", "jpeg", "pdf"], // Agrega "pdf"
     transformation: [{ width: 500, height: 500, crop: "limit" }],
   },
 });
