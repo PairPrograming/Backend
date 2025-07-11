@@ -51,7 +51,7 @@ routeEvento.post("/esalon", addSalonEventoHandler);
 routeEvento.delete("/esalon/:eventoId/:salonId", deleteSalonEventoHandler);
 
 routeEvento.post("/:id/contrato", createContratoHandler)
-routeEvento.get ("/:id/contrato/:id", obtenerContratoHandler);
+routeEvento.get ("/:id/contrato", obtenerContratoHandler);
 routeEvento.delete ("/:id/contrato/:id", eliminarContratoHandler);
 routeEvento.put("/:id/contrato/:id", actContratoHandler)
 
