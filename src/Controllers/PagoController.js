@@ -366,33 +366,60 @@ const cancelarPagoController = async (pagoId, motivo) => {
     return { success: false, message: error.message };
   }
 };
+const { Op } = require('sequelize');
+
 const getGridPagosController = async (filtros = {}) => {
-  console.log('Filtros recibidos:', filtros);
   try {
     const { 
       estado, 
       fechaDesde, 
       fechaHasta, 
+      evento,
       limit = 50, 
       offset = 0,
-      orderBy = 'estatus',
+      orderBy = 'id',
       orderDirection = 'DESC'
     } = filtros;
 
     const condiciones = {};
     
     if (estado) {
-      condiciones.estatus = estado;
+      condiciones.estatus = {
+        [Op.like]: `%${estado}%`
+      };
     }
     
-    const allowedFields = ['monto', 'estatus']; // actualiza con tus columnas reales
+    if (fechaDesde || fechaHasta) {
+      condiciones.fechaCreacion = {};
+      
+      if (fechaDesde) {
+        condiciones.fechaCreacion[Op.gte] = new Date(fechaDesde);
+      }
+      
+      if (fechaHasta) {
+        const fechaFin = new Date(fechaHasta);
+        fechaFin.setHours(23, 59, 59, 999);
+        condiciones.fechaCreacion[Op.lte] = fechaFin;
+      }
+    }
+    
+    if (evento) {
+      condiciones.eventoNombre = {
+        [Op.like]: `%${evento}%`
+      };
+    }
+    
+    const allowedFields = ['id', 'monto', 'estatus', 'fechaCreacion', 'eventoNombre'];
     const allowedDirections = ['ASC', 'DESC'];
     
-    const sortField = allowedFields.includes(orderBy) ? orderBy : 'monto';
-    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase()) ? orderDirection.toUpperCase() : 'ASC';
+    const sortField = allowedFields.includes(orderBy) ? orderBy : 'id';
+    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase()) ? 
+      orderDirection.toUpperCase() : 'DESC';
     
-    const safeLimit = Number.isInteger(parseInt(limit)) ? parseInt(limit) : 10;
-    const safeOffset = Number.isInteger(parseInt(offset)) ? parseInt(offset) : 0;
+    const safeLimit = Number.isInteger(parseInt(limit)) && parseInt(limit) > 0 ? 
+      parseInt(limit) : 50;
+    const safeOffset = Number.isInteger(parseInt(offset)) && parseInt(offset) >= 0 ? 
+      parseInt(offset) : 0;
     
     const result = await Pago.findAll({
       where: condiciones,
@@ -405,20 +432,21 @@ const getGridPagosController = async (filtros = {}) => {
 
     return { 
       success: true, 
-      data: {
-        pagos: result,
-        pagination: {
-          total,
-          limit: safeLimit,
-          offset: safeOffset,
-          hasMore: (safeOffset + safeLimit) < total
-        }
+      data: result,
+      pagination: {
+        total,
+        limit: safeLimit,
+        offset: safeOffset,
+        pages: Math.ceil(total / safeLimit),
+        currentPage: Math.floor(safeOffset / safeLimit) + 1
       }
     };
+
   } catch (error) {
-    return { success: false, message: error.message };
+    throw new Error('Error al obtener los pagos');
   }
-}
+};
+
 module.exports = { 
   crearPagoController,
   obtenerPagoController,
