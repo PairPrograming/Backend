@@ -1,5 +1,5 @@
 const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
-
+const { Op } = require('sequelize');
 const crearPagoController = async (data) => {
   const {
     ordenId,
@@ -366,7 +366,6 @@ const cancelarPagoController = async (pagoId, motivo) => {
     return { success: false, message: error.message };
   }
 };
-const { Op } = require('sequelize');
 
 const getGridPagosController = async (filtros = {}) => {
   try {
