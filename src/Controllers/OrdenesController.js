@@ -214,16 +214,7 @@ const getGridOrdenesController = async (filtros = {}) => {
             include: [
               {
                 model: Eventos,
-                attributes: ["nombre"],
-                include: [
-                  {
-                    model: Salones, 
-                    attributes: ["Id", "salon", "nombre"],
-                    through: { attributes: [] },
-                    required: false, 
-                    separate: false
-                  },
-                ],
+                attributes: ["nombre", "salonNombre"],
               },
             ],
           },
@@ -282,14 +273,12 @@ const getGridOrdenesController = async (filtros = {}) => {
               .includes(evento.toLowerCase());
           }
 
-          const salonesArray = detalle.Entrada?.Evento?.Salones || [];
+          const salonNombre = detalle.Entrada?.Evento?.salonNombre || "";
 
           if (salon) {
-            // Buscar en el array de salones
-            matchSalon = salonesArray.some((salonObj) => {
-              const salonNombre = salonObj.salon || "";
-              return salonNombre.toLowerCase().includes(salon.toLowerCase());
-            });
+            matchSalon = salonNombre
+              .toLowerCase()
+              .includes(salon.toLowerCase());
           }
 
           return matchEvento && matchSalon;
