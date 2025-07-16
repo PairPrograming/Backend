@@ -1,5 +1,7 @@
 const {
   Orden,
+  MetodoDePago,
+  Pago,
   DetalleDeOrden,
   Entrada,
   Eventos,
@@ -217,6 +219,14 @@ const getGridOrdenesController = async (filtros = {}) => {
                 attributes: ["nombre", "salonNombre"],
               },
             ],
+          },
+        ],
+      },
+      {
+        model: Pago,
+        include: [
+          {
+            model: MetodoDePago,
           },
         ],
       },
