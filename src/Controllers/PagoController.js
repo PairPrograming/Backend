@@ -1,5 +1,5 @@
 const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
-
+const { Op } = require('sequelize');
 const crearPagoController = async (data) => {
   const {
     ordenId,
@@ -366,7 +366,6 @@ const cancelarPagoController = async (pagoId, motivo) => {
     return { success: false, message: error.message };
   }
 };
-const { Op } = require('sequelize');
 
 const getGridPagosController = async (filtros = {}) => {
   try {
@@ -390,16 +389,16 @@ const getGridPagosController = async (filtros = {}) => {
     }
     
     if (fechaDesde || fechaHasta) {
-      condiciones.fechaCreacion = {};
+      condiciones.createdAt = {};
       
       if (fechaDesde) {
-        condiciones.fechaCreacion[Op.gte] = new Date(fechaDesde);
+        condiciones.createdAt[Op.gte] = new Date(fechaDesde);
       }
       
       if (fechaHasta) {
         const fechaFin = new Date(fechaHasta);
         fechaFin.setHours(23, 59, 59, 999);
-        condiciones.fechaCreacion[Op.lte] = fechaFin;
+        condiciones.createdAt[Op.lte] = fechaFin;
       }
     }
     
