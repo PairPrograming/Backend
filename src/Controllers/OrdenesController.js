@@ -217,10 +217,25 @@ const getGridOrdenesController = async (filtros = {}) => {
               {
                 model: Eventos,
                 attributes: ["nombre", "salonNombre"],
+                where: {
+                  ...(evento && {
+                    nombre: {
+                      [Op.like]: `%${evento}%`
+                    }
+                  }),
+                  ...(salon && {
+                    salonNombre: {
+                      [Op.like]: `%${salon}%`
+                    }
+                  })
+                },
+                required: !!(evento || salon)
               },
             ],
+            required: !!(evento || salon)
           },
         ],
+        required: !!(evento || salon)
       },
       {
         model: Pago,
@@ -263,53 +278,27 @@ const getGridOrdenesController = async (filtros = {}) => {
         ? parseInt(offset)
         : 0;
 
-    let result = await Orden.findAll({
+    const { count, rows } = await Orden.findAndCountAll({
       where: condiciones,
       include: includeArray,
       order: [[sortField, sortDirection]],
+      limit: safeLimit,
+      offset: safeOffset,
       subQuery: false,
+      distinct: true,
     });
-
-    if (evento || salon) {
-      result = result.filter((orden) => {
-        return orden.DetalleDeOrdens.some((detalle) => {
-          const eventoNombre = detalle.Entrada?.Evento?.nombre || "";
-          let matchEvento = true;
-          let matchSalon = true;
-
-          if (evento) {
-            matchEvento = eventoNombre
-              .toLowerCase()
-              .includes(evento.toLowerCase());
-          }
-
-          const salonNombre = detalle.Entrada?.Evento?.salonNombre || "";
-
-          if (salon) {
-            matchSalon = salonNombre
-              .toLowerCase()
-              .includes(salon.toLowerCase());
-          }
-
-          return matchEvento && matchSalon;
-        });
-      });
-    }
-
-    const total = result.length;
-    const paginatedResult = result.slice(safeOffset, safeOffset + safeLimit);
 
     return {
       success: true,
       data: {
-        ordenes: paginatedResult,
+        ordenes: rows,
         pagination: {
-          total,
+          total: count,
           limit: safeLimit,
           offset: safeOffset,
-          pages: Math.ceil(total / safeLimit),
+          pages: Math.ceil(count / safeLimit),
           currentPage: Math.floor(safeOffset / safeLimit) + 1,
-          hasMore: safeOffset + safeLimit < total,
+          hasMore: safeOffset + safeLimit < count,
         },
       },
     };
