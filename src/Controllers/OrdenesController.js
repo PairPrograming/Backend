@@ -220,12 +220,12 @@ const getGridOrdenesController = async (filtros = {}) => {
                 where: {
                   ...(evento && {
                     nombre: {
-                      [Op.like]: `%${evento}%`
+                      [Op.iLike]: `%${evento}%`
                     }
                   }),
                   ...(salon && {
                     salonNombre: {
-                      [Op.like]: `%${salon}%`
+                      [Op.iLike]: `%${salon}%`
                     }
                   })
                 },
