@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       impuesto: {
-        type: DataTypes.JSON,
+        type: DataTypes.JSONB,
         allowNull: true,
         comment:
           "JSON object with installment count as key and tax percentage as value. Example: {0: 0, 1: 10.3, 2: 20}",
