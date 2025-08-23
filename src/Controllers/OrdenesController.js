@@ -171,6 +171,7 @@ const getGridOrdenesController = async (filtros = {}) => {
       userId,
       evento,
       salon,
+      metodoDePago,
       limit = 50,
       offset = 0,
       orderBy = "fecha_creacion",
@@ -242,8 +243,19 @@ const getGridOrdenesController = async (filtros = {}) => {
         include: [
           {
             model: MetodoDePago,
+            where: metodoDePago ? {
+              [Op.or]: [
+                { id: metodoDePago },
+                { 
+                  nombre: {
+                    [Op.iLike]: `%${metodoDePago}%`
+                  }
+                }
+              ]
+            } : undefined
           },
         ],
+        required: !!metodoDePago
       },
     ];
 
