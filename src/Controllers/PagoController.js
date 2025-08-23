@@ -353,6 +353,7 @@ const getGridPagosController = async (filtros = {}) => {
       fechaDesde, 
       fechaHasta, 
       evento,
+      metodoDePago,
       limit = 50, 
       offset = 0,
       orderBy = 'id',
@@ -386,8 +387,31 @@ const getGridPagosController = async (filtros = {}) => {
         [Op.like]: `%${evento}%`
       };
     }
+        const includeArray = [];
     
-    const allowedFields = ['id', 'monto', 'estatus', 'fechaCreacion', 'eventoNombre'];
+        if (metodoDePago) {
+          includeArray.push({
+            model: MetodoDePago,
+            where: {
+              [Op.or]: [
+                { id: metodoDePago },
+                { 
+                  nombre: {
+                    [Op.iLike]: `%${metodoDePago}%`
+                  }
+                }
+              ]
+            },
+            required: true 
+          });
+        } else {
+          includeArray.push({
+            model: MetodoDePago,
+            required: false
+          });
+        }
+    
+    const allowedFields = ['id', 'monto', 'estatus', 'fechaCreacion', 'eventoNombre', "metodoDePago"];
     const allowedDirections = ['ASC', 'DESC'];
     
     const sortField = allowedFields.includes(orderBy) ? orderBy : 'id';
@@ -401,12 +425,17 @@ const getGridPagosController = async (filtros = {}) => {
     
     const result = await Pago.findAll({
       where: condiciones,
+      include: includeArray,
       order: [[sortField, sortDirection]],
       limit: safeLimit,
       offset: safeOffset
     });
 
-    const total = await Pago.count({ where: condiciones });
+    const total = await Pago.count({ 
+      where: condiciones,
+      include: includeArray,
+      distinct: true
+    });
 
     return { 
       success: true, 
