@@ -13,18 +13,17 @@ const { DATABASE_URL } = process.env;
 // });
 
 const sequelize = new Sequelize(
-  process.env.DATABASE_URL || process.env.LINKDB,
+  process.env.NODE_ENV === 'production' 
+    ? process.env.DATABASE_URL 
+    : process.env.LINKDB, // ← Usa local en desarrollo
   {
     logging: false,
     native: false,
     dialectOptions: {
-      ssl:
-        process.env.NODE_ENV === "production"
-          ? {
-              require: true,
-              rejectUnauthorized: false,
-            }
-          : false,
+      ssl: process.env.NODE_ENV === "production" ? {
+        require: true,
+        rejectUnauthorized: false,
+      } : false,
     },
   }
 );
@@ -78,7 +77,8 @@ const {
   Orden,
   Pago,
   DetalleDeOrden,
-  Entrada
+  Entrada,
+  Contrato
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -202,6 +202,18 @@ Users.hasMany(Image, {
   scope: {
     type: "usuario",
   },
+});
+//Eventos / Contrato
+Eventos.hasOne(Contrato, {
+  foreignKey: 'eventoId',
+  as: 'contrato',
+  onDelete: 'CASCADE',
+});
+
+Contrato.belongsTo(Eventos, {
+  foreignKey: 'eventoId',
+  as: 'evento',
+  onDelete: 'CASCADE',
 });
 
 module.exports = {

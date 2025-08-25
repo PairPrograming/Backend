@@ -1,15 +1,36 @@
-const { Orden, DetalleDeOrden, Entrada, Eventos, Salones, Punto_de_venta, Users, conn } = require('../DbIndex');
+const {
+  Orden,
+  MetodoDePago,
+  Pago,
+  DetalleDeOrden,
+  Entrada,
+  Eventos,
+  Salones,
+  Punto_de_venta,
+  Users,
+  conn,
+} = require("../DbIndex");
+const { Op } = require("sequelize");
 
 const crearOrdenConDetalles = async (data) => {
-  const { estado, detalles, userId, dni_cliente,  nombre_cliente, email_cliente, telefono_cliente } = data;
+  const {
+    estado,
+    detalles,
+    userId,
+    dni_cliente,
+    nombre_cliente,
+    email_cliente,
+    telefono_cliente,
+  } = data;
   if (!detalles || detalles.length === 0) {
-    return { success: false, message: 'Debe incluir al menos un detalle' };
+    return { success: false, message: "Debe incluir al menos un detalle" };
   }
 
   if (!userId && (!nombre_cliente || !email_cliente || !dni_cliente)) {
     return {
       success: false,
-      message: 'Se requiere un usuario registrado o datos de contacto (nombre y correo).'
+      message:
+        "Se requiere un usuario registrado o datos de contacto (nombre y correo).",
     };
   }
 
@@ -24,7 +45,7 @@ const crearOrdenConDetalles = async (data) => {
         dni_cliente: dni_cliente || null,
         nombre_cliente: nombre_cliente || null,
         email_cliente: email_cliente || null,
-        telefono_cliente: telefono_cliente || null
+        telefono_cliente: telefono_cliente || null,
       },
       { transaction: t }
     );
@@ -37,7 +58,7 @@ const crearOrdenConDetalles = async (data) => {
       await DetalleDeOrden.findOrCreate({
         where: {
           ordenId: orden.id,
-          entradaId: detalle.entradaId
+          entradaId: detalle.entradaId,
         },
         defaults: {
           cantidad: detalle.cantidad,
@@ -46,7 +67,7 @@ const crearOrdenConDetalles = async (data) => {
           ordenId: orden.id,
           entradaId: detalle.entradaId,
         },
-        transaction: t 
+        transaction: t,
       });
     }
 
@@ -74,8 +95,8 @@ const getOrdenesController = async (id) => {
           include: [
             {
               model: Eventos,
-              attributes: ['nombre', "salonId"],
-            }
+              attributes: ["nombre", "salonId"],
+            },
           ],
         },
         {
@@ -83,10 +104,10 @@ const getOrdenesController = async (id) => {
           include: [
             {
               model: Users,
-              attributes: ['nombre', 'email'], // Ajusta según los campos que quieras
-            }
+              attributes: ["nombre", "email"], // Ajusta según los campos que quieras
+            },
           ],
-        }
+        },
       ],
     });
 
@@ -95,7 +116,7 @@ const getOrdenesController = async (id) => {
     }
 
     const orden = detalles[0].Orden;
-    const detallesCompactados = detalles.map(detalle => ({
+    const detallesCompactados = detalles.map((detalle) => ({
       id: detalle.id,
       cantidad: detalle.cantidad,
       precio_unitario: detalle.precio_unitario,
@@ -109,16 +130,16 @@ const getOrdenesController = async (id) => {
         evento: {
           nombre: detalle.Entrada.Evento.nombre,
           salonId: detalle.Entrada.Evento.salonId,
-        }
-      }
+        },
+      },
     }));
-    const salonId = detallesCompactados[0].entrada.evento.salonId
+    const salonId = detallesCompactados[0].entrada.evento.salonId;
     const salon = await Salones.findByPk(salonId, {
       include: {
         model: Punto_de_venta,
         through: { attributes: [] },
-        attributes: ['id', 'razon', 'direccion', "telefono", "cuit"], // ajusta según tus columnas
-      }
+        attributes: ["id", "razon", "direccion", "telefono", "cuit"], // ajusta según tus columnas
+      },
     });
     const ordenCompactada = {
       id: orden.id,
@@ -129,9 +150,11 @@ const getOrdenesController = async (id) => {
       total: orden.total,
       estado: orden.estado,
       fecha_creacion: orden.fecha_creacion,
-      user: orden.User ? { nombre: orden.User.nombre, email: orden.User.email } : null,
+      user: orden.User
+        ? { nombre: orden.User.nombre, email: orden.User.email }
+        : null,
       detalles: detallesCompactados,
-      salon
+      salon,
     };
     return { success: true, data: ordenCompactada };
   } catch (error) {
@@ -141,124 +164,206 @@ const getOrdenesController = async (id) => {
 
 const getGridOrdenesController = async (filtros = {}) => {
   try {
-    const { 
-      estado, 
-      fechaDesde, 
-      fechaHasta, 
-      userId, 
-      limit = 50, 
+    const {
+      estado,
+      fechaDesde,
+      fechaHasta,
+      userId,
+      evento,
+      salon,
+      metodoDePago,
+      limit = 50,
       offset = 0,
-      orderBy = 'fecha_creacion',
-      orderDirection = 'DESC'
+      orderBy = "fecha_creacion",
+      orderDirection = "DESC",
     } = filtros;
 
     const condiciones = {};
-    
+
     if (estado) {
-      condiciones.estado = estado;
+      condiciones.estado = {
+        [Op.like]: `%${estado}%`,
+      };
     }
-    
+
     if (userId) {
       condiciones.userId = userId;
     }
-    
+
     if (fechaDesde || fechaHasta) {
       condiciones.fecha_creacion = {};
+
       if (fechaDesde) {
         condiciones.fecha_creacion[Op.gte] = new Date(fechaDesde);
       }
+
       if (fechaHasta) {
-        condiciones.fecha_creacion[Op.lte] = new Date(fechaHasta);
+        const fechaFin = new Date(fechaHasta);
+        fechaFin.setHours(23, 59, 59, 999);
+        condiciones.fecha_creacion[Op.lte] = fechaFin;
       }
     }
 
-    const result = await Orden.findAll({
-      where: condiciones,
-      include: [
-        {
-          model: Users,
-          attributes: ['nombre', 'email']
-        },
-        {
-          model: DetalleDeOrden,
-          include: [
-            {
-              model: Entrada,
-              include: [
-                {
-                  model: Eventos,
-                  attributes: ['nombre']
+    const includeArray = [
+      {
+        model: Users,
+        attributes: ["nombre", "email"],
+      },
+      {
+        model: DetalleDeOrden,
+        include: [
+          {
+            model: Entrada,
+            include: [
+              {
+                model: Eventos,
+                attributes: ["nombre", "salonNombre"],
+                where: {
+                  ...(evento && {
+                    nombre: {
+                      [Op.iLike]: `%${evento}%`
+                    }
+                  }),
+                  ...(salon && {
+                    salonNombre: {
+                      [Op.iLike]: `%${salon}%`
+                    }
+                  })
+                },
+                required: !!(evento || salon)
+              },
+            ],
+            required: !!(evento || salon)
+          },
+        ],
+        required: !!(evento || salon)
+      },
+      {
+        model: Pago,
+        include: [
+          {
+            model: MetodoDePago,
+            where: metodoDePago ? {
+              [Op.or]: [
+                { id: metodoDePago },
+                { 
+                  nombre: {
+                    [Op.iLike]: `%${metodoDePago}%`
+                  }
                 }
               ]
-            }
-          ]
-        }
-      ],
-      order: [[orderBy, orderDirection]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+            } : undefined
+          },
+        ],
+        required: !!metodoDePago
+      },
+    ];
+
+    const allowedFields = [
+      "id",
+      "fecha_creacion",
+      "estado",
+      "total",
+      "nombre_cliente",
+      "email_cliente",
+      "fecha_pago",
+      "createdAt",
+      "updatedAt",
+    ];
+    const allowedDirections = ["ASC", "DESC"];
+
+    const sortField = allowedFields.includes(orderBy)
+      ? orderBy
+      : "fecha_creacion";
+    const sortDirection = allowedDirections.includes(
+      orderDirection?.toUpperCase()
+    )
+      ? orderDirection.toUpperCase()
+      : "DESC";
+
+    const safeLimit =
+      Number.isInteger(parseInt(limit)) && parseInt(limit) > 0
+        ? parseInt(limit)
+        : 50;
+    const safeOffset =
+      Number.isInteger(parseInt(offset)) && parseInt(offset) >= 0
+        ? parseInt(offset)
+        : 0;
+
+    const { count, rows } = await Orden.findAndCountAll({
+      where: condiciones,
+      include: includeArray,
+      order: [[sortField, sortDirection]],
+      limit: safeLimit,
+      offset: safeOffset,
+      subQuery: false,
+      distinct: true,
     });
 
-    const total = await Orden.count({ where: condiciones });
-
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
-        ordenes: result,
+        ordenes: rows,
         pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: (parseInt(offset) + parseInt(limit)) < total
-        }
-      }
+          total: count,
+          limit: safeLimit,
+          offset: safeOffset,
+          pages: Math.ceil(count / safeLimit),
+          currentPage: Math.floor(safeOffset / safeLimit) + 1,
+          hasMore: safeOffset + safeLimit < count,
+        },
+      },
     };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error("Error en getGridOrdenesController:", error);
+    return { success: false, message: "Error al obtener las órdenes" };
   }
-}
+};
+
 const deleteOrderController = async (ordenId) => {
   try {
-    if (!ordenId){
+    if (!ordenId) {
       return {
         success: false,
-        message: 'Se requiere una orden registrada o una id valida para poder eliminarla.',
+        message:
+          "Se requiere una orden registrada o una id valida para poder eliminarla.",
       };
     }
     const ordenExistente = await Orden.findByPk(ordenId);
     if (!ordenExistente) {
       return {
         success: false,
-        message: 'La orden no existe o ya fue eliminada.',
+        message: "La orden no existe o ya fue eliminada.",
       };
     }
-    if(ordenExistente.estado === 'pagado') {
+    if (ordenExistente.estado === "pagado") {
       return {
         success: false,
-        message: 'No se pueden eliminar órdenes que ya han sido pagadas.',
-      }
+        message: "No se pueden eliminar órdenes que ya han sido pagadas.",
+      };
     }
-    const count = await Orden.destroy({where:{id: ordenId}});
+    const count = await Orden.destroy({ where: { id: ordenId } });
     if (count === 0) {
       return {
         success: false,
-        message: 'No se pudo eliminar la orden.',
+        message: "No se pudo eliminar la orden.",
       };
     }
     return {
       success: true,
-      message: 'La orden se elimino correctamente'
-    }
+      message: "La orden se elimino correctamente",
+    };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,  
-      message: 'Error interno del servidor al eliminar la orden.'};
+    return {
+      success: false,
+      error: error.message,
+      message: "Error interno del servidor al eliminar la orden.",
+    };
   }
-}
+};
 module.exports = {
   crearOrdenConDetalles,
   getOrdenesController,
   getGridOrdenesController,
-  deleteOrderController
-}
+  deleteOrderController,
+};
