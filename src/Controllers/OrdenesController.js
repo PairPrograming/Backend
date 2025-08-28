@@ -10,7 +10,7 @@ const {
   Users,
   conn,
 } = require("../DbIndex");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 
 const crearOrdenConDetalles = async (data) => {
   const {
@@ -172,38 +172,50 @@ const getGridOrdenesController = async (filtros = {}) => {
       evento,
       salon,
       metodoDePago,
+      tipoDeCobro,
+      impuestoClave,
+      impuestoValor,
       limit = 50,
       offset = 0,
       orderBy = "fecha_creacion",
       orderDirection = "DESC",
-    } = filtros;
+    } = filtros
 
-    const condiciones = {};
+    const condiciones = {}
 
-    if (estado) {
+    // Filtro por estado
+    if (estado?.trim()) {
       condiciones.estado = {
-        [Op.like]: `%${estado}%`,
-      };
+        [Op.like]: `%${estado.trim()}%`,
+      }
     }
 
+    // Filtro por usuario
     if (userId) {
-      condiciones.userId = userId;
+      condiciones.userId = userId
     }
 
+    // Filtros de fecha
     if (fechaDesde || fechaHasta) {
-      condiciones.fecha_creacion = {};
+      condiciones.fecha_creacion = {}
 
       if (fechaDesde) {
-        condiciones.fecha_creacion[Op.gte] = new Date(fechaDesde);
+        const fechaInicio = new Date(fechaDesde)
+        if (!isNaN(fechaInicio.getTime())) {
+          condiciones.fecha_creacion[Op.gte] = fechaInicio
+        }
       }
 
       if (fechaHasta) {
-        const fechaFin = new Date(fechaHasta);
-        fechaFin.setHours(23, 59, 59, 999);
-        condiciones.fecha_creacion[Op.lte] = fechaFin;
+        const fechaFin = new Date(fechaHasta)
+        if (!isNaN(fechaFin.getTime())) {
+          fechaFin.setHours(23, 59, 59, 999)
+          condiciones.fecha_creacion[Op.lte] = fechaFin
+        }
       }
     }
 
+    // Includes
     const includeArray = [
       {
         model: Users,
@@ -219,46 +231,72 @@ const getGridOrdenesController = async (filtros = {}) => {
                 model: Eventos,
                 attributes: ["nombre", "salonNombre"],
                 where: {
-                  ...(evento && {
+                  ...(evento?.trim() && {
                     nombre: {
-                      [Op.iLike]: `%${evento}%`
-                    }
+                      [Op.iLike]: `%${evento.trim()}%`,
+                    },
                   }),
-                  ...(salon && {
+                  ...(salon?.trim() && {
                     salonNombre: {
-                      [Op.iLike]: `%${salon}%`
-                    }
-                  })
+                      [Op.iLike]: `%${salon.trim()}%`,
+                    },
+                  }),
                 },
-                required: !!(evento || salon)
+                required: !!(evento?.trim() || salon?.trim()),
               },
             ],
-            required: !!(evento || salon)
+            required: !!(evento?.trim() || salon?.trim()),
           },
         ],
-        required: !!(evento || salon)
+        required: !!(evento?.trim() || salon?.trim()),
       },
       {
         model: Pago,
         include: [
           {
             model: MetodoDePago,
-            where: metodoDePago ? {
-              [Op.or]: [
-                { id: metodoDePago },
-                { 
-                  nombre: {
-                    [Op.iLike]: `%${metodoDePago}%`
-                  }
-                }
-              ]
-            } : undefined
+            where: {
+              ...(metodoDePago?.trim() && {
+                tipo_de_cobro: { [Op.iLike]: `%${metodoDePago.trim()}%` },
+              }),
+              ...(tipoDeCobro?.trim() && {
+                tipo_de_cobro: { [Op.iLike]: `%${tipoDeCobro.trim()}%` },
+              }),
+              ...(impuestoValor && {
+                ...(impuestoClave?.trim()
+                  ? {
+                      impuesto: {
+                        [Op.contains]: { [impuestoClave.trim()]: Number(impuestoValor) },
+                      },
+                    }
+                  : {
+                      // Buscar el valor en cualquier clave del objeto impuesto
+                      [Op.or]: [
+                        { impuesto: { [Op.contains]: { 1: Number(impuestoValor) } } },
+                        { impuesto: { [Op.contains]: { 2: Number(impuestoValor) } } },
+                        { impuesto: { [Op.contains]: { 3: Number(impuestoValor) } } },
+                        { impuesto: { [Op.contains]: { 6: Number(impuestoValor) } } },
+                      ],
+                    }),
+              }),
+              ...(impuestoClave?.trim() &&
+                !impuestoValor && {
+                  [Sequelize.where(Sequelize.json(`"impuesto"->>'${impuestoClave.trim()}'`), { [Op.ne]: null })]: true,
+                }),
+            },
+            required: false, // Cambiar a false para no requerir siempre método de pago
           },
         ],
-        required: !!metodoDePago
+        required: false, // Cambiar a false para no requerir siempre pago
       },
-    ];
+    ]
 
+    if (metodoDePago?.trim() || tipoDeCobro?.trim() || impuestoClave?.trim() || impuestoValor) {
+      includeArray[2].required = true
+      includeArray[2].include[0].required = true
+    }
+
+    // Ordenamiento seguro
     const allowedFields = [
       "id",
       "fecha_creacion",
@@ -269,27 +307,24 @@ const getGridOrdenesController = async (filtros = {}) => {
       "fecha_pago",
       "createdAt",
       "updatedAt",
-    ];
-    const allowedDirections = ["ASC", "DESC"];
+    ]
+    const allowedDirections = ["ASC", "DESC"]
 
-    const sortField = allowedFields.includes(orderBy)
-      ? orderBy
-      : "fecha_creacion";
-    const sortDirection = allowedDirections.includes(
-      orderDirection?.toUpperCase()
-    )
+    const sortField = allowedFields.includes(orderBy) ? orderBy : "fecha_creacion"
+    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase())
       ? orderDirection.toUpperCase()
-      : "DESC";
+      : "DESC"
 
+    // Paginación segura
     const safeLimit =
-      Number.isInteger(parseInt(limit)) && parseInt(limit) > 0
-        ? parseInt(limit)
-        : 50;
+      Number.isInteger(Number.parseInt(limit)) && Number.parseInt(limit) > 0 ? Number.parseInt(limit) : 50
     const safeOffset =
-      Number.isInteger(parseInt(offset)) && parseInt(offset) >= 0
-        ? parseInt(offset)
-        : 0;
+      Number.isInteger(Number.parseInt(offset)) && Number.parseInt(offset) >= 0 ? Number.parseInt(offset) : 0
 
+    console.log("[v0] Filtros recibidos:", filtros)
+    console.log("[v0] Condiciones WHERE:", condiciones)
+
+    // Consulta principal
     const { count, rows } = await Orden.findAndCountAll({
       where: condiciones,
       include: includeArray,
@@ -298,7 +333,7 @@ const getGridOrdenesController = async (filtros = {}) => {
       offset: safeOffset,
       subQuery: false,
       distinct: true,
-    });
+    })
 
     return {
       success: true,
@@ -313,12 +348,18 @@ const getGridOrdenesController = async (filtros = {}) => {
           hasMore: safeOffset + safeLimit < count,
         },
       },
-    };
+    }
   } catch (error) {
-    console.error("Error en getGridOrdenesController:", error);
-    return { success: false, message: "Error al obtener las órdenes" };
+    console.error("Error en getGridOrdenesController:", error)
+    console.error("Filtros que causaron el error:", filtros)
+    return {
+      success: false,
+      message: "Error al obtener las órdenes",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    }
   }
-};
+}
+
 
 const deleteOrderController = async (ordenId) => {
   try {
