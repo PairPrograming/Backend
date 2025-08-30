@@ -243,20 +243,20 @@ const getGridOrdenesController = async (filtros = {}) => {
         include: [
           {
             model: MetodoDePago,
-            where: metodoDePago ? {
-              [Op.or]: [
-                { id: metodoDePago },
-                { 
-                  nombre: {
-                    [Op.iLike]: `%${metodoDePago}%`
-                  }
-                }
+            where: {
+              [Op.and]: [
+                ...(metodoDePago ? [{ // Siempre crea el array, aunque esté vacío
+                  [Op.or]: [
+                    //{ Id: metodoDePago },
+                    { tipo_de_cobro: { [Op.iLike]: `%${metodoDePago}%` } }
+                  ]
+                }] : [])
               ]
-            } : undefined
-          },
-        ],
-        required: !!metodoDePago
-      },
+            },
+            required: !!metodoDePago
+          }
+        ]
+      }
     ];
 
     const allowedFields = [
