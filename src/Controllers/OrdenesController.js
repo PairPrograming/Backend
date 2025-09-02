@@ -256,47 +256,21 @@ const getGridOrdenesController = async (filtros = {}) => {
           {
             model: MetodoDePago,
             where: {
-              ...(metodoDePago?.trim() && {
-                tipo_de_cobro: { [Op.iLike]: `%${metodoDePago.trim()}%` },
-              }),
-              ...(tipoDeCobro?.trim() && {
-                tipo_de_cobro: { [Op.iLike]: `%${tipoDeCobro.trim()}%` },
-              }),
-              ...(impuestoValor && {
-                ...(impuestoClave?.trim()
-                  ? {
-                      impuesto: {
-                        [Op.contains]: { [impuestoClave.trim()]: Number(impuestoValor) },
-                      },
-                    }
-                  : {
-                      // Buscar el valor en cualquier clave del objeto impuesto
-                      [Op.or]: [
-                        { impuesto: { [Op.contains]: { 1: Number(impuestoValor) } } },
-                        { impuesto: { [Op.contains]: { 2: Number(impuestoValor) } } },
-                        { impuesto: { [Op.contains]: { 3: Number(impuestoValor) } } },
-                        { impuesto: { [Op.contains]: { 6: Number(impuestoValor) } } },
-                      ],
-                    }),
-              }),
-              ...(impuestoClave?.trim() &&
-                !impuestoValor && {
-                  [Sequelize.where(Sequelize.json(`"impuesto"->>'${impuestoClave.trim()}'`), { [Op.ne]: null })]: true,
-                }),
+              [Op.and]: [
+                ...(metodoDePago ? [{ // Siempre crea el array, aunque esté vacío
+                  [Op.or]: [
+                    //{ Id: metodoDePago },
+                    { tipo_de_cobro: { [Op.iLike]: `%${metodoDePago}%` } }
+                  ]
+                }] : [])
+              ]
             },
-            required: false, // Cambiar a false para no requerir siempre método de pago
-          },
-        ],
-        required: false, // Cambiar a false para no requerir siempre pago
-      },
-    ]
+            required: !!metodoDePago
+          }
+        ]
+      }
+    ];
 
-    if (metodoDePago?.trim() || tipoDeCobro?.trim() || impuestoClave?.trim() || impuestoValor) {
-      includeArray[2].required = true
-      includeArray[2].include[0].required = true
-    }
-
-    // Ordenamiento seguro
     const allowedFields = [
       "id",
       "fecha_creacion",

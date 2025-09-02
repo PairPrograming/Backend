@@ -31,24 +31,24 @@ module.exports = (sequelize) => {
       nombre: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (!this.auth0Id && (!value || value.trim() === "")) {
               throw new Error("Nombre es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       apellido: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (!this.auth0Id && (!value || value.trim() === "")) {
               throw new Error("Apellido es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       direccion: {
         type: DataTypes.STRING,
@@ -119,11 +119,11 @@ module.exports = (sequelize) => {
       profileImage: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
+        /*validate: {
           isUrl: {
             msg: "La URL de la imagen no es válida",
           },
-        },
+        },*/
       },
       lastLogin: {
         type: DataTypes.DATE,
