@@ -48,7 +48,6 @@ const crearPagoController = async (data) => {
         await t.rollback();
         return { success: false, message: "El método de cobro no está disponible" };
       }
-
       comision = metodoDePago.comision || 0;
       if (impuestoPorcentaje === 0) {
         impuestoPorcentaje = metodoDePago.impuesto || 0;
@@ -218,6 +217,7 @@ const crearPagoController = async (data) => {
         descripcion: descripcion || null,
         ordenId,
         metodoDeCobroId,
+        cuotas: installments || 1,
         imagen: imagenUrl || null,
         error_message: error_message || null,
         fecha_cancelacion: fecha_cancelacion || null,
@@ -257,7 +257,7 @@ const crearPagoController = async (data) => {
     await t.commit();
 
     console.log("[v1] Payment created successfully with stock validation + tax calculation");
-
+    console.log(metodoDePago);
     return {
       success: true,
       data: {
@@ -353,6 +353,7 @@ const getGridPagosController = async (filtros = {}) => {
       fechaDesde, 
       fechaHasta, 
       evento,
+      cuotas,
       metodoDePago,
       limit = 50, 
       offset = 0,
@@ -386,6 +387,18 @@ const getGridPagosController = async (filtros = {}) => {
       condiciones.eventoNombre = {
         [Op.like]: `%${evento}%`
       };
+    }
+    if (cuotas) {
+      if (cuotas === '1' || cuotas === 1) {
+        condiciones.cuotas = {
+          [Op.or]: [
+            { [Op.is]: null },
+            { [Op.eq]: 1 }
+          ]
+        };
+      } else {
+        condiciones.cuotas = parseInt(cuotas);
+      }
     }
         const includeArray = [];
     

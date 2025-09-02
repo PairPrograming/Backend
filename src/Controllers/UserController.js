@@ -1,16 +1,33 @@
 const { Users, Rols } = require("../DbIndex");
+const { Op } = require('sequelize');
 const bcrypt = require("bcrypt");
 
 const createUserController = async (data) => {
   try {
-    const [created] = await Users.findOrCreate({
-      where: { email: data.email },
-      defaults: data,
+    const usuarioExistente = await Users.findOne({
+      where: {
+        [Op.or] : [
+          { email : data.email },
+          { usuario: data.usuario}
+        ]
+      }
     });
-
-    if (!created) throw new Error(`El usuario ya existe`);
-
-    return { success: true, message: "Usuario creado exitosamente" };
+    
+    if (usuarioExistente) {
+      if (usuarioExistente.email === data.email && usuarioExistente.usuario === data.usuario) {
+        throw new Error(`Ya existe un usuario con el email ${data.email} y el usuario ${data.usuario}`);
+      } else if (usuarioExistente.email === data.email) {
+        throw new Error(`Ya existe un usuario con el email ${data.email}`);
+      } else if (usuarioExistente.usuario === data.usuario) {
+        throw new Error(`Ya existe un usuario con el nombre de usuario ${data.usuario}`);
+      }
+    }
+    const user = await Users.create(data)
+    return { 
+      success: true, 
+      message: "Usuario creado exitosamente",
+      user: user 
+    };
   } catch (error) {
     throw new Error(`${error.message}`);
   }
