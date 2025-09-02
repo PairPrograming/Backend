@@ -25,6 +25,10 @@ module.exports = (sequelize) => {
       allowNull: true,
       defaultValue: 0,
     },
+    cuotas:{
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     total: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
