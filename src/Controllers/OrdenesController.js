@@ -171,6 +171,7 @@ const getGridOrdenesController = async (filtros = {}) => {
       userId,
       evento,
       salon,
+      cuotas,
       metodoDePago,
       limit = 50,
       offset = 0,
@@ -255,7 +256,26 @@ const getGridOrdenesController = async (filtros = {}) => {
             },
             required: !!metodoDePago
           }
-        ]
+        ],
+        where: {
+          ...(cuotas && (() => {
+            if (cuotas === '1' || cuotas === 1) {
+              return {
+                cuotas: {
+                  [Op.or]: [
+                    { [Op.is]: null },
+                    { [Op.eq]: 1 }
+                  ]
+                }
+              };
+            } else {
+              return {
+                cuotas: parseInt(cuotas)
+              };
+            }
+          })())
+        },
+        required: !!(cuotas || metodoDePago)
       }
     ];
 
