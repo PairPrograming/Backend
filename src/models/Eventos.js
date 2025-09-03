@@ -52,7 +52,7 @@ module.exports = (sequelize) => {
         },
       },
       salonId: {
-        type: DataTypes.STRING,
+        type: DataTypes.UUID,
         allowNull: true,
         comment:
           "Nombre o identificador del salón donde se realizará el evento",
