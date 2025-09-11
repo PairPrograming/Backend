@@ -3,7 +3,7 @@ const {
   agregarEntradasHandler,
   obtenerEntradasHandler,
   deleteEntradashandler,
-  actualizarEntradaHandler, // Importa el handler PUT
+  actualizarEntradaHandler,
     agregarSubtipoHandler,
   actualizarSubtipoHandler,
 } = require("../Handlers/EntradaHandler");
