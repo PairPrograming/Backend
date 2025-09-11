@@ -78,7 +78,8 @@ const {
   Pago,
   DetalleDeOrden,
   Entrada,
-  Contrato
+  Contrato,
+  SubtipoEntrada
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -149,7 +150,8 @@ DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
 
 Eventos.hasMany(Entrada, { foreignKey: "eventoId" });
 Entrada.belongsTo(Eventos, { foreignKey: "eventoId" });
-
+Entrada.hasMany(SubtipoEntrada, { foreignKey: 'EntradaId', as: 'subtipos', onDelete: 'CASCADE'});
+SubtipoEntrada.belongsTo(Entrada, { foreignKey: 'EntradaId', as: 'entrada' });
 Entrada.hasMany(DetalleDeOrden, { foreignKey: "entradaId" });
 DetalleDeOrden.belongsTo(Entrada, { foreignKey: "entradaId" });
 

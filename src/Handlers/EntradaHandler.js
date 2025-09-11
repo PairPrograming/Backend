@@ -2,7 +2,9 @@ const {
   agregarEntradasController,
   obtenerEntradasController,
   deleteEntradaController,
-  actualizarEntradaController, // Agrega el controlador para PUT
+  actualizarEntradaController, 
+  agregarSubtipoController,
+  actualizarSubtipoController,
 } = require("../Controllers/EntradaController");
 const { genericHandler } = require("../utils//Handler");
 
@@ -14,10 +16,14 @@ const deleteEntradashandler = genericHandler((id) =>
   deleteEntradaController(id)
 );
 const actualizarEntradaHandler = genericHandler(actualizarEntradaController); // Handler para PUT
+const agregarSubtipoHandler = genericHandler(agregarSubtipoController);
+const actualizarSubtipoHandler = genericHandler(actualizarSubtipoController);
 
 module.exports = {
   agregarEntradasHandler,
   obtenerEntradasHandler,
   deleteEntradashandler,
   actualizarEntradaHandler, // Exporta el nuevo handler
+  agregarSubtipoHandler,
+  actualizarSubtipoHandler,
 };
