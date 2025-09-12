@@ -55,7 +55,6 @@ const crearOrdenConDetalles = async (data) => {
     for (const detalle of detalles) {
       const totalDetalle = detalle.cantidad * detalle.precio_unitario;
       totalOrden += totalDetalle;
-console.log("Hola esto es: ", detalle.subtipoEntradaId)
       await DetalleDeOrden.findOrCreate({
         where: {
           ordenId: orden.id,
