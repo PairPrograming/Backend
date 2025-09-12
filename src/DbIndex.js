@@ -154,6 +154,8 @@ Entrada.hasMany(SubtipoEntrada, { foreignKey: 'EntradaId', as: 'subtipos', onDel
 SubtipoEntrada.belongsTo(Entrada, { foreignKey: 'EntradaId', as: 'entrada' });
 Entrada.hasMany(DetalleDeOrden, { foreignKey: "entradaId" });
 DetalleDeOrden.belongsTo(Entrada, { foreignKey: "entradaId" });
+SubtipoEntrada.hasMany(DetalleDeOrden, { foreignKey: "subtipoEntradaId" });
+DetalleDeOrden.belongsTo(SubtipoEntrada, { foreignKey: "subtipoEntradaId" });
 
 // Tickets / Orden / Eventos
 Eventos.hasMany(Tickets, { foreignKey: "eventoId" });

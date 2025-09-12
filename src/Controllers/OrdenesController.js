@@ -7,6 +7,7 @@ const {
   Eventos,
   Salones,
   Punto_de_venta,
+  SubtipoEntrada,
   Users,
   conn,
 } = require("../DbIndex");
@@ -54,18 +55,19 @@ const crearOrdenConDetalles = async (data) => {
     for (const detalle of detalles) {
       const totalDetalle = detalle.cantidad * detalle.precio_unitario;
       totalOrden += totalDetalle;
-
+console.log("Hola esto es: ", detalle.subtipoEntradaId)
       await DetalleDeOrden.findOrCreate({
         where: {
           ordenId: orden.id,
-          entradaId: detalle.entradaId,
+          subtipoEntradaId: detalle.subtipoEntradaId
         },
         defaults: {
           cantidad: detalle.cantidad,
           precio_unitario: detalle.precio_unitario,
           total: totalDetalle,
           ordenId: orden.id,
-          entradaId: detalle.entradaId,
+          entradaId: detalle.entradaId,           // Para reportes generales
+          subtipoEntradaId: detalle.subtipoEntradaId, // Para control de stock
         },
         transaction: t,
       });
