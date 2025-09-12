@@ -1,4 +1,4 @@
-const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
+const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, SubtipoEntrada, conn } = require("../DbIndex");
 const { Op } = require('sequelize');
 const crearPagoController = async (data) => {
   console.log("[v1] crearPagoController received data:", JSON.stringify(data, null, 2));
