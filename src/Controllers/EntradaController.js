@@ -59,7 +59,7 @@ const agregarEntradasController = async (data) => {
       tipo_entrada: data.tipo_entrada,
       descripcion: data.descripcion || null,
       cantidad_total: data.cantidad_total,
-      cantidad_real: data.cantidad_total - totalSubtipos, // Restar los subtipos asignados
+      cantidad_real: data.cantidad_total,
       fecha_inicio_venta: data.fecha_inicio_venta || null,
       fecha_fin_venta: data.fecha_fin_venta || null,
       estatus: data.estatus || 'disponible',
@@ -316,7 +316,7 @@ const agregarSubtipoController = async (data) => {
     const subtipo = await SubtipoEntrada.create(data);
 
     // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real = entrada.cantidad_total - nuevaCantidadTotal;
+    entrada.cantidad_real = nuevaCantidadTotal;
     await entrada.save();
 
     return {
