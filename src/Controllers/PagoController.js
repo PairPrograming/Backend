@@ -1,16 +1,13 @@
-const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, conn } = require("../DbIndex");
+const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada,SubtipoEntrada, conn } = require("../DbIndex");
 const { Op } = require('sequelize');
 const crearPagoController = async (data) => {
-  console.log("[v1] crearPagoController received data:", JSON.stringify(data, null, 2));
-
   const {
     ordenId,
-    metodoDeCobroId, // Puede ser null
+    metodoDeCobroId,
     estatus,
     referencia,
     descripcion,
     montoRecibido,
-    // Nuevos campos del modelo
     imagen,
     error_message,
     fecha_cancelacion,
@@ -35,8 +32,7 @@ const crearPagoController = async (data) => {
     let metodoDePago = null;
     let comision = 0;
     let impuestoPorcentaje = Number.parseFloat(taxPercentage) || 0;
-
-    // Buscar método de pago solo si se pasa ID
+    // Buscar método de pago
     if (metodoDeCobroId) {
       metodoDePago = await MetodoDePago.findByPk(metodoDeCobroId);
       if (!metodoDePago) {
@@ -49,9 +45,9 @@ const crearPagoController = async (data) => {
         return { success: false, message: "El método de cobro no está disponible" };
       }
       comision = metodoDePago.comision || 0;
-      if (impuestoPorcentaje === 0) {
-        impuestoPorcentaje = metodoDePago.impuesto || 0;
-      }
+       if (impuestoPorcentaje === 0 || isNaN(impuestoPorcentaje)) {
+    impuestoPorcentaje = Number.parseFloat(metodoDePago.impuesto) || 0;
+  }
     }
 
     const orden = await Orden.findByPk(ordenId, {
@@ -59,6 +55,14 @@ const crearPagoController = async (data) => {
         {
           model: DetalleDeOrden,
           required: true,
+          include: [
+            { model: Entrada, required: false },
+            { 
+              model: SubtipoEntrada, 
+              required: false,
+              include: [{ model: Entrada, as: 'entrada', required: false }]
+            }
+          ]
         },
       ],
       transaction: t,
@@ -113,45 +117,53 @@ const crearPagoController = async (data) => {
       }
     }
 
-    // -------------------------
-    // 🔎 VALIDACIÓN DE STOCK
-    // -------------------------
-    const entradasIds = orden.DetalleDeOrdens.map((d) => d.entradaId);
-    const entradas = await Entrada.findAll({
-      where: { id: entradasIds },
-      transaction: t,
-    });
-
-    if (entradas.length !== entradasIds.length) {
-      await t.rollback();
-      return { success: false, message: "Algunas entradas de la orden no fueron encontradas" };
-    }
-
-    const entradasMap = new Map(entradas.map((e) => [e.id, e]));
+    // VALIDACIÓN DE STOCK - CORREGIDA
     const erroresStock = [];
 
     for (const detalle of orden.DetalleDeOrdens) {
-      const entrada = entradasMap.get(detalle.entradaId);
+      // Caso 1: Subtipo de entrada
+      if (detalle.subtipoEntradaId && detalle.SubtipoEntrada) {
+        const subtipo = detalle.SubtipoEntrada;
 
-      if (!entrada) {
-        erroresStock.push(`Entrada con ID ${detalle.entradaId} no encontrada`);
-        continue;
+        if (subtipo.estatus !== "activo") {
+          erroresStock.push(`El subtipo ${subtipo.nombre} no está disponible para venta`);
+          continue;
+        }
+
+        if (detalle.cantidad <= 0) {
+          erroresStock.push(`La cantidad debe ser mayor a cero para ${subtipo.nombre}`);
+          continue;
+        }
+
+        if (subtipo.cantidad_disponible < detalle.cantidad) {
+          erroresStock.push(
+            `Stock insuficiente para ${subtipo.nombre}. Disponible: ${subtipo.cantidad_disponible}, Solicitado: ${detalle.cantidad}`
+          );
+        }
       }
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
+      else if (detalle.entradaId && detalle.Entrada) {
+        const entrada = detalle.Entrada;
 
-      if (entrada.estatus !== "disponible") {
-        erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`);
-        continue;
+        if (entrada.estatus !== "disponible") {
+          erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`);
+          continue;
+        }
+
+        if (detalle.cantidad <= 0) {
+          erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`);
+          continue;
+        }
+
+        // CORREGIDO: Usar cantidad_real en lugar de cantidad
+        if (entrada.cantidad_real < detalle.cantidad) {
+          erroresStock.push(
+            `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad_real}, Solicitado: ${detalle.cantidad}`
+          );
+        }
       }
-
-      if (detalle.cantidad <= 0) {
-        erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`);
-        continue;
-      }
-
-      if (entrada.cantidad < detalle.cantidad) {
-        erroresStock.push(
-          `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad}, Solicitado: ${detalle.cantidad}`
-        );
+      else {
+        erroresStock.push(`Detalle de orden inválido: debe tener entradaId o subtipoEntradaId`);
       }
     }
 
@@ -163,25 +175,16 @@ const crearPagoController = async (data) => {
       };
     }
 
-    // -------------------------
-    // 📊 CÁLCULO MONTOS (nuevo modelo)
-    // -------------------------
+    // Cálculo de montos
     let montoBase, comisionMonto, impuestoMonto, total;
     const imagenUrl = imagen;
 
     if (baseAmount !== undefined && taxAmount !== undefined) {
-      console.log("[v1] Using frontend calculations - baseAmount:", baseAmount, "taxAmount:", taxAmount);
       montoBase = Number.parseFloat(baseAmount);
       impuestoMonto = Number.parseFloat(taxAmount);
       comisionMonto = Math.round(montoBase * (Number.parseFloat(comision) / 100) * 100) / 100;
       total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100;
     } else {
-      console.log(
-        "[v1] Using traditional calculation - orden.total:",
-        orden.total,
-        "impuestoPorcentaje:",
-        impuestoPorcentaje
-      );
       montoBase = Number.parseFloat(orden.total);
       const comisionPorcentaje = Number.parseFloat(comision) || 0;
       comisionMonto = Math.round(montoBase * (comisionPorcentaje / 100) * 100) / 100;
@@ -202,9 +205,7 @@ const crearPagoController = async (data) => {
       }
     }
 
-    // -------------------------
-    // 💾 CREAR PAGO
-    // -------------------------
+    // Crear pago
     const pago = await Pago.create(
       {
         monto: montoBase,
@@ -226,23 +227,60 @@ const crearPagoController = async (data) => {
       { transaction: t }
     );
 
-    // -------------------------
-    // 📦 ACTUALIZAR STOCK
-    // -------------------------
+    // ACTUALIZACIÓN DE STOCK - CORREGIDA
     for (const detalle of orden.DetalleDeOrdens) {
-      const entrada = entradasMap.get(detalle.entradaId);
-      entrada.cantidad -= detalle.cantidad;
+      // Caso 1: Subtipo de entrada
+      if (detalle.subtipoEntradaId) {
+        const subtipo = detalle.SubtipoEntrada || await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
+          include: [{ model: Entrada, as: 'entrada' }],
+          transaction: t
+        });
+        
+        if (subtipo) {
+          // Actualizar subtipo
+          subtipo.cantidad_disponible -= detalle.cantidad;
+          subtipo.cantidad_vendida += detalle.cantidad;
+          
+          if (subtipo.cantidad_disponible <= 0) {
+            subtipo.estatus = "agotado";
+            subtipo.cantidad_disponible = 0; // Evitar negativos
+          }
+          
+          await subtipo.save({ transaction: t });
 
-      if (entrada.cantidad === 0) {
-        entrada.estatus = "agotado";
+          // Actualizar entrada padre si existe - CORREGIDO
+          if (subtipo.entrada) {
+            // CORREGIDO: Usar cantidad_real en lugar de cantidad
+            subtipo.entrada.cantidad_real -= detalle.cantidad;
+            
+            if (subtipo.entrada.cantidad_real <= 0) {
+              subtipo.entrada.estatus = "agotado";
+              subtipo.entrada.cantidad_real = 0; // Evitar negativos
+            }
+            
+            await subtipo.entrada.save({ transaction: t });
+          }
+        }
+      } 
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
+      else if (detalle.entradaId) {
+        const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
+        
+        if (entrada) {
+          // CORREGIDO: Usar cantidad_real en lugar de cantidad
+          entrada.cantidad_real -= detalle.cantidad;
+          
+          if (entrada.cantidad_real <= 0) {
+            entrada.estatus = "agotado";
+            entrada.cantidad_real = 0; // Evitar negativos
+          }
+          
+          await entrada.save({ transaction: t });
+        }
       }
-
-      await entrada.save({ transaction: t });
     }
 
-    // -------------------------
-    // 🏷️ ACTUALIZAR ORDEN
-    // -------------------------
+    // Actualizar orden
     if (estatus === "completado" || estatus === "pagado") {
       await orden.update(
         {
@@ -251,13 +289,10 @@ const crearPagoController = async (data) => {
         },
         { transaction: t }
       );
-      console.log("[v1] Order status updated to 'pagado'");
     }
 
     await t.commit();
 
-    console.log("[v1] Payment created successfully with stock validation + tax calculation");
-    console.log(metodoDePago);
     return {
       success: true,
       data: {
@@ -280,15 +315,12 @@ const crearPagoController = async (data) => {
       await t.rollback();
     }
 
-    console.error(`❌ Error al crear pago - Orden: ${ordenId}:`, error.message);
-
     return {
       success: false,
       message: `Error interno: ${error.message}`,
     };
   }
 };
-
 
 const cancelarPagoController = async (pagoId, motivo) => {
   const t = await conn.transaction();
@@ -298,7 +330,19 @@ const cancelarPagoController = async (pagoId, motivo) => {
       include: [
         {
           model: Orden,
-          include: [{ model: DetalleDeOrden }]
+          include: [
+            {
+              model: DetalleDeOrden,
+              include: [
+                { model: Entrada, required: false },
+                { 
+                  model: SubtipoEntrada, 
+                  required: false,
+                  include: [{ model: Entrada, as: 'entrada', required: false }]
+                }
+              ]
+            }
+          ]
         }
       ],
       transaction: t
@@ -314,35 +358,96 @@ const cancelarPagoController = async (pagoId, motivo) => {
       return { success: false, message: "El pago ya está cancelado" };
     }
 
+    // RESTAURAR STOCK - CORREGIDO
     for (const detalle of pago.Orden.DetalleDeOrdens) {
-      const entrada = await Entrada.findByPk(detalle.entradaId, { transaction: t });
-      if (entrada) {
-        entrada.cantidad += detalle.cantidad;
-        if (entrada.estatus === 'agotado' && entrada.cantidad > 0) {
-          entrada.estatus = 'disponible';
+      // Caso 1: Subtipo de entrada
+      if (detalle.subtipoEntradaId) {
+        const subtipo = detalle.SubtipoEntrada || await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
+          include: [{ model: Entrada, as: 'entrada' }],
+          transaction: t
+        });
+        
+        if (subtipo) {
+          // Restaurar stock del subtipo
+          subtipo.cantidad_disponible += detalle.cantidad;
+          subtipo.cantidad_vendida -= detalle.cantidad;
+          
+          // Prevenir que cantidad_vendida sea negativa
+          if (subtipo.cantidad_vendida < 0) {
+            subtipo.cantidad_vendida = 0;
+          }
+          
+          // Cambiar estatus si ya no está agotado
+          if (subtipo.estatus === 'agotado' && subtipo.cantidad_disponible > 0) {
+            subtipo.estatus = 'activo';
+          }
+          
+          await subtipo.save({ transaction: t });
+
+          // Restaurar entrada padre si existe - CORREGIDO
+          if (subtipo.entrada) {
+            // CORREGIDO: Usar cantidad_real en lugar de cantidad
+            subtipo.entrada.cantidad_real += detalle.cantidad;
+            
+            // CORREGIDO: Validar contra cantidad_real
+            if (subtipo.entrada.estatus === 'agotado' && subtipo.entrada.cantidad_real > 0) {
+              subtipo.entrada.estatus = 'disponible';
+            }
+            
+            await subtipo.entrada.save({ transaction: t });
+          }
         }
-        await entrada.save({ transaction: t });
+      }
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
+      else if (detalle.entradaId) {
+        const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
+        
+        if (entrada) {
+          // CORREGIDO: Usar cantidad_real en lugar de cantidad
+          entrada.cantidad_real += detalle.cantidad;
+          
+          // CORREGIDO: Validar contra cantidad_real
+          if (entrada.estatus === 'agotado' && entrada.cantidad_real > 0) {
+            entrada.estatus = 'disponible';
+          }
+          
+          await entrada.save({ transaction: t });
+        }
       }
     }
 
+    // Actualizar pago y orden
     pago.estatus = 'cancelado';
     pago.fecha_cancelacion = new Date();
     pago.motivo_cancelacion = motivo;
     await pago.save({ transaction: t });
 
-    pago.Orden.estado = 'cancelado';
+    // Cambiar estado de la orden a 'pendiente' en lugar de 'cancelado'
+    // para permitir que se pueda intentar pagar nuevamente
+    pago.Orden.estado = 'pendiente';
+    pago.Orden.fecha_actualizacion = new Date();
     await pago.Orden.save({ transaction: t });
 
     await t.commit();
     
-    console.log(`🔄 Pago cancelado - ID: ${pagoId}, Motivo: ${motivo}`);
-    
-    return { success: true, message: "Pago cancelado exitosamente" };
+    return { 
+      success: true, 
+      message: "Pago cancelado exitosamente. El stock ha sido restaurado.",
+      data: {
+        pagoId: pago.id,
+        ordenId: pago.Orden.id,
+        stockRestaurado: true
+      }
+    };
+
   } catch (error) {
     if (!t.finished) {
       await t.rollback();
     }
-    return { success: false, message: error.message };
+    return { 
+      success: false, 
+      message: `Error al cancelar pago: ${error.message}` 
+    };
   }
 };
 

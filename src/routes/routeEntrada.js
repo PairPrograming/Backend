@@ -3,13 +3,19 @@ const {
   agregarEntradasHandler,
   obtenerEntradasHandler,
   deleteEntradashandler,
-  actualizarEntradaHandler, // Importa el handler PUT
+  obtenerEntradaByIdHandler,
+  actualizarEntradaHandler,
+    agregarSubtipoHandler,
+  actualizarSubtipoHandler,
 } = require("../Handlers/EntradaHandler");
 const routeEntrada = Router();
 
 routeEntrada.get("/:id", obtenerEntradasHandler);
+routeEntrada.get("/:entradaid/entradas", obtenerEntradaByIdHandler);
 routeEntrada.delete("/:id", deleteEntradashandler);
 routeEntrada.post("/", agregarEntradasHandler);
-routeEntrada.put("/:id", actualizarEntradaHandler); // Ruta para actualizar
+routeEntrada.put("/", actualizarEntradaHandler); // Ruta para actualizar
+routeEntrada.post("/subtipo/", agregarSubtipoHandler);
+routeEntrada.put("/subtipo/:id", actualizarSubtipoHandler); // Ruta para actualizar
 
 module.exports = routeEntrada;

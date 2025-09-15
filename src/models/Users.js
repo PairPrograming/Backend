@@ -20,46 +20,46 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        /*validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("DNI es obligatorio si no se usa Auth0");
-            }
-          },
-        },*/
+        validate: {
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("DNI es obligatorio si no se usa Auth0");
+          //   }
+          // },
+        },
       },
       nombre: {
         type: DataTypes.STRING,
         allowNull: true,
-        /*validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Nombre es obligatorio si no se usa Auth0");
-            }
-          },
-        },*/
+        validate: {
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("Nombre es obligatorio si no se usa Auth0");
+          //   }
+          // },
+        },
       },
       apellido: {
         type: DataTypes.STRING,
         allowNull: true,
-        /*validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Apellido es obligatorio si no se usa Auth0");
-            }
-          },
-        },*/
+        validate: {
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("Apellido es obligatorio si no se usa Auth0");
+          //   }
+          // },
+        },
       },
       direccion: {
         type: DataTypes.STRING,
         allowNull: true,
-        /*validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Dirección es obligatoria si no se usa Auth0");
-            }
-          },
-        },*/
+        validate: {
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("Dirección es obligatoria si no se usa Auth0");
+          //   }
+          // },
+        },
       },
       email: {
         type: DataTypes.STRING,
@@ -74,56 +74,56 @@ module.exports = (sequelize) => {
       whatsapp: {
         type: DataTypes.STRING,
         allowNull: true,
-        /*validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Whatsapp es obligatorio si no se usa Auth0");
-            }
-          },
-        },*/
+        validate: {
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("Whatsapp es obligatorio si no se usa Auth0");
+          //   }
+          // },
+        },
       },
       usuario: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
         validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Usuario es obligatorio si no se usa Auth0");
-            }
-          },
+          // conditionalRequired(value) {
+          //   if (!this.auth0Id && (!value || value.trim() === "")) {
+          //     throw new Error("Usuario es obligatorio si no se usa Auth0");
+          //   }
+          // },
         },
       },
       password: {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
-          notNullIfNoAuth0(value) {
-            if (!this.auth0Id && !value) {
-              throw new Error("Debe establecer una contraseña o usar Auth0");
-            }
-          },
+          // notNullIfNoAuth0(value) {
+          //   if (!this.auth0Id && !value) {
+          //     throw new Error("Debe establecer una contraseña o usar Auth0");
+          //   }
+          // },
         },
       },
       rol: {
         type: DataTypes.ENUM("admin", "vendor", "comun", "graduado"),
         allowNull: false,
-        defaultValue: "comun", // Por defecto será 'vendor'
+        defaultValue: "comun",
         validate: {
           isIn: {
             args: [["admin", "vendor", "comun", "graduado"]],
-            msg: "El rol debe ser 'admin' o 'vendor'",
+            msg: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
           },
         },
       },
       profileImage: {
         type: DataTypes.STRING,
         allowNull: true,
-        /*validate: {
+        validate: {
           isUrl: {
             msg: "La URL de la imagen no es válida",
           },
-        },*/
+        },
       },
       lastLogin: {
         type: DataTypes.DATE,

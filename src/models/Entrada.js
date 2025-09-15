@@ -11,19 +11,32 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    precio: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+    descripcion: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
-    cantidad: {
+    cantidad_total: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    cantidad_real: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    fecha_inicio_venta: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    fecha_fin_venta: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     estatus: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        isIn: [["disponible", "agotado"]],
+        isIn: [["disponible", "agotado", "suspendido", "inactivo"]],
       },
     },
   }, {

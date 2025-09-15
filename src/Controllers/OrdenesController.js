@@ -7,6 +7,7 @@ const {
   Eventos,
   Salones,
   Punto_de_venta,
+  SubtipoEntrada,
   Users,
   conn,
 } = require("../DbIndex");
@@ -22,6 +23,7 @@ const crearOrdenConDetalles = async (data) => {
     email_cliente,
     telefono_cliente,
   } = data;
+  
   if (!detalles || detalles.length === 0) {
     return { success: false, message: "Debe incluir al menos un detalle" };
   }
@@ -29,8 +31,7 @@ const crearOrdenConDetalles = async (data) => {
   if (!userId && (!nombre_cliente || !email_cliente || !dni_cliente)) {
     return {
       success: false,
-      message:
-        "Se requiere un usuario registrado o datos de contacto (nombre y correo).",
+      message: "Se requiere un usuario registrado o datos de contacto (nombre y correo).",
     };
   }
 
@@ -54,19 +55,33 @@ const crearOrdenConDetalles = async (data) => {
     for (const detalle of detalles) {
       const totalDetalle = detalle.cantidad * detalle.precio_unitario;
       totalOrden += totalDetalle;
+      
+      const detalleData = {
+        cantidad: detalle.cantidad,
+        precio_unitario: detalle.precio_unitario,
+        total: totalDetalle,
+        ordenId: orden.id,
+        entradaId: detalle.entradaId,
+      };
+
+      if (detalle.subtipoEntradaId) {
+        detalleData.subtipoEntradaId = detalle.subtipoEntradaId;
+      }
+
+      const whereCondition = {
+        ordenId: orden.id,
+        entradaId: detalle.entradaId
+      };
+
+      if (detalle.subtipoEntradaId) {
+        whereCondition.subtipoEntradaId = detalle.subtipoEntradaId;
+      } else {
+        whereCondition.subtipoEntradaId = null;
+      }
 
       await DetalleDeOrden.findOrCreate({
-        where: {
-          ordenId: orden.id,
-          entradaId: detalle.entradaId,
-        },
-        defaults: {
-          cantidad: detalle.cantidad,
-          precio_unitario: detalle.precio_unitario,
-          total: totalDetalle,
-          ordenId: orden.id,
-          entradaId: detalle.entradaId,
-        },
+        where: whereCondition,
+        defaults: detalleData,
         transaction: t,
       });
     }
