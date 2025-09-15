@@ -117,7 +117,7 @@ const crearPagoController = async (data) => {
       }
     }
 
-    // Validación de stock
+    // VALIDACIÓN DE STOCK - CORREGIDA
     const erroresStock = [];
 
     for (const detalle of orden.DetalleDeOrdens) {
@@ -141,7 +141,7 @@ const crearPagoController = async (data) => {
           );
         }
       }
-      // Caso 2: Entrada directa
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId && detalle.Entrada) {
         const entrada = detalle.Entrada;
 
@@ -155,9 +155,10 @@ const crearPagoController = async (data) => {
           continue;
         }
 
-        if (entrada.cantidad < detalle.cantidad) {
+        // CORREGIDO: Usar cantidad_real en lugar de cantidad
+        if (entrada.cantidad_real < detalle.cantidad) {
           erroresStock.push(
-            `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad}, Solicitado: ${detalle.cantidad}`
+            `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad_real}, Solicitado: ${detalle.cantidad}`
           );
         }
       }
@@ -203,6 +204,7 @@ const crearPagoController = async (data) => {
         return { success: false, message: "El monto recibido debe ser un número válido" };
       }
     }
+
     // Crear pago
     const pago = await Pago.create(
       {
@@ -225,50 +227,58 @@ const crearPagoController = async (data) => {
       { transaction: t }
     );
 
-    // Actualizar stock
-   for (const detalle of orden.DetalleDeOrdens) {
-  // Caso 1: Subtipo de entrada
-  if (detalle.subtipoEntradaId) {
-    const subtipo = detalle.SubtipoEntrada || await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
-      include: [{ model: Entrada, as: 'entrada' }],
-      transaction: t
-    });
-    
-    if (subtipo) {
-      subtipo.cantidad_disponible -= detalle.cantidad;
-      subtipo.cantidad_vendida += detalle.cantidad;
-      
-      if (subtipo.cantidad_disponible === 0) {
-        subtipo.estatus = "agotado";
-      }
-      
-      await subtipo.save({ transaction: t });
+    // ACTUALIZACIÓN DE STOCK - CORREGIDA
+    for (const detalle of orden.DetalleDeOrdens) {
+      // Caso 1: Subtipo de entrada
+      if (detalle.subtipoEntradaId) {
+        const subtipo = detalle.SubtipoEntrada || await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
+          include: [{ model: Entrada, as: 'entrada' }],
+          transaction: t
+        });
+        
+        if (subtipo) {
+          // Actualizar subtipo
+          subtipo.cantidad_disponible -= detalle.cantidad;
+          subtipo.cantidad_vendida += detalle.cantidad;
+          
+          if (subtipo.cantidad_disponible <= 0) {
+            subtipo.estatus = "agotado";
+            subtipo.cantidad_disponible = 0; // Evitar negativos
+          }
+          
+          await subtipo.save({ transaction: t });
 
-      // Actualizar entrada padre si existe
-      if (subtipo.entrada) {
-        subtipo.entrada.cantidad -= detalle.cantidad;
-        subtipo.entrada.cantidad_real = subtipo.entrada.cantidad_total - detalle.cantidad; // ← CALCULAR
-        if (subtipo.entrada.cantidad === 0) {
-          subtipo.entrada.estatus = "agotado";
+          // Actualizar entrada padre si existe - CORREGIDO
+          if (subtipo.entrada) {
+            // CORREGIDO: Usar cantidad_real en lugar de cantidad
+            subtipo.entrada.cantidad_real -= detalle.cantidad;
+            
+            if (subtipo.entrada.cantidad_real <= 0) {
+              subtipo.entrada.estatus = "agotado";
+              subtipo.entrada.cantidad_real = 0; // Evitar negativos
+            }
+            
+            await subtipo.entrada.save({ transaction: t });
+          }
         }
-        await subtipo.entrada.save({ transaction: t });
+      } 
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
+      else if (detalle.entradaId) {
+        const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
+        
+        if (entrada) {
+          // CORREGIDO: Usar cantidad_real en lugar de cantidad
+          entrada.cantidad_real -= detalle.cantidad;
+          
+          if (entrada.cantidad_real <= 0) {
+            entrada.estatus = "agotado";
+            entrada.cantidad_real = 0; // Evitar negativos
+          }
+          
+          await entrada.save({ transaction: t });
+        }
       }
     }
-  } 
-  // Caso 2: Entrada directa
-  else if (detalle.entradaId) {
-    const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
-    
-    if (entrada) {
-      entrada.cantidad -= detalle.cantidad;
-      entrada.cantidad_real = entrada.cantidad_total - detalle.cantidad; // ← CALCULAR
-      if (entrada.cantidad === 0) {
-        entrada.estatus = "agotado";
-      }
-      await entrada.save({ transaction: t });
-    }
-  }
-}
 
     // Actualizar orden
     if (estatus === "completado" || estatus === "pagado") {
@@ -348,7 +358,7 @@ const cancelarPagoController = async (pagoId, motivo) => {
       return { success: false, message: "El pago ya está cancelado" };
     }
 
-    // Restaurar stock
+    // RESTAURAR STOCK - CORREGIDO
     for (const detalle of pago.Orden.DetalleDeOrdens) {
       // Caso 1: Subtipo de entrada
       if (detalle.subtipoEntradaId) {
@@ -358,32 +368,49 @@ const cancelarPagoController = async (pagoId, motivo) => {
         });
         
         if (subtipo) {
+          // Restaurar stock del subtipo
           subtipo.cantidad_disponible += detalle.cantidad;
           subtipo.cantidad_vendida -= detalle.cantidad;
+          
+          // Prevenir que cantidad_vendida sea negativa
+          if (subtipo.cantidad_vendida < 0) {
+            subtipo.cantidad_vendida = 0;
+          }
+          
+          // Cambiar estatus si ya no está agotado
           if (subtipo.estatus === 'agotado' && subtipo.cantidad_disponible > 0) {
             subtipo.estatus = 'activo';
           }
+          
           await subtipo.save({ transaction: t });
 
-          // Restaurar entrada padre si existe
+          // Restaurar entrada padre si existe - CORREGIDO
           if (subtipo.entrada) {
+            // CORREGIDO: Usar cantidad_real en lugar de cantidad
             subtipo.entrada.cantidad_real += detalle.cantidad;
-            if (subtipo.entrada.estatus === 'agotado' && subtipo.entrada.cantidad > 0) {
+            
+            // CORREGIDO: Validar contra cantidad_real
+            if (subtipo.entrada.estatus === 'agotado' && subtipo.entrada.cantidad_real > 0) {
               subtipo.entrada.estatus = 'disponible';
             }
+            
             await subtipo.entrada.save({ transaction: t });
           }
         }
       }
-      // Caso 2: Entrada directa
+      // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId) {
         const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
         
         if (entrada) {
-          entrada.cantidad += detalle.cantidad;
-          if (entrada.estatus === 'agotado' && entrada.cantidad > 0) {
+          // CORREGIDO: Usar cantidad_real en lugar de cantidad
+          entrada.cantidad_real += detalle.cantidad;
+          
+          // CORREGIDO: Validar contra cantidad_real
+          if (entrada.estatus === 'agotado' && entrada.cantidad_real > 0) {
             entrada.estatus = 'disponible';
           }
+          
           await entrada.save({ transaction: t });
         }
       }
@@ -395,18 +422,32 @@ const cancelarPagoController = async (pagoId, motivo) => {
     pago.motivo_cancelacion = motivo;
     await pago.save({ transaction: t });
 
-    pago.Orden.estado = 'cancelado';
+    // Cambiar estado de la orden a 'pendiente' en lugar de 'cancelado'
+    // para permitir que se pueda intentar pagar nuevamente
+    pago.Orden.estado = 'pendiente';
+    pago.Orden.fecha_actualizacion = new Date();
     await pago.Orden.save({ transaction: t });
 
     await t.commit();
     
-    return { success: true, message: "Pago cancelado exitosamente" };
+    return { 
+      success: true, 
+      message: "Pago cancelado exitosamente. El stock ha sido restaurado.",
+      data: {
+        pagoId: pago.id,
+        ordenId: pago.Orden.id,
+        stockRestaurado: true
+      }
+    };
 
   } catch (error) {
     if (!t.finished) {
       await t.rollback();
     }
-    return { success: false, message: error.message };
+    return { 
+      success: false, 
+      message: `Error al cancelar pago: ${error.message}` 
+    };
   }
 };
 

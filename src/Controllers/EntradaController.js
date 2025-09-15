@@ -6,8 +6,7 @@ const agregarEntradasController = async (data) => {
     const validate = [
       "eventoId",
       "tipo_entrada",
-      "cantidad_total",
-      "subtipos"
+      "cantidad_total"
     ];
     for (const valid of validate) {
       if (!data[valid]) {
@@ -15,15 +14,29 @@ const agregarEntradasController = async (data) => {
       }
     }
 
-    // Validar que subtipos sea un array y no esté vacío
-    if (!Array.isArray(data.subtipos) || data.subtipos.length === 0) {
-      throw new Error("Debe incluir al menos un subtipo de entrada");
-    }
+    // Validar subtipos solo si se proporcionan
+    if (data.subtipos) {
+      // Validar que subtipos sea un array y no esté vacío (si se proporciona)
+      if (!Array.isArray(data.subtipos) || data.subtipos.length === 0) {
+        throw new Error("Si se proporcionan subtipos, debe incluir al menos uno");
+      }
 
-    // Validar estructura de subtipos
-    for (const subtipo of data.subtipos) {
-      if (!subtipo.nombre || !subtipo.precio || !subtipo.cantidad_disponible) {
-        throw new Error("Cada subtipo debe tener: nombre, precio y cantidad_disponible");
+      // Validar estructura de subtipos
+      for (const subtipo of data.subtipos) {
+        if (!subtipo.nombre || !subtipo.precio || !subtipo.cantidad_disponible) {
+          throw new Error("Cada subtipo debe tener: nombre, precio y cantidad_disponible");
+        }
+      }
+
+      // VALIDAR QUE LA SUMA DE SUBTIPOS NO EXCEDA CANTIDAD TOTAL
+      const totalSubtipos = data.subtipos.reduce((total, subtipo) =>
+        total + parseInt(subtipo.cantidad_disponible), 0
+      );
+
+      if (totalSubtipos > data.cantidad_total) {
+        throw new Error(
+          `La suma de cantidades de subtipos (${totalSubtipos}) no puede exceder la cantidad total (${data.cantidad_total})`
+        );
       }
     }
 
@@ -56,17 +69,6 @@ const agregarEntradasController = async (data) => {
       );
     }
 
-    // VALIDAR QUE LA SUMA DE SUBTIPOS NO EXCEDA CANTIDAD TOTAL
-    const totalSubtipos = data.subtipos.reduce((total, subtipo) =>
-      total + parseInt(subtipo.cantidad_disponible), 0
-    );
-
-    if (totalSubtipos > data.cantidad_total) {
-      throw new Error(
-        `La suma de cantidades de subtipos (${totalSubtipos}) no puede exceder la cantidad total (${data.cantidad_total})`
-      );
-    }
-
     // Verificar si ya existe entrada con ese tipo para el evento
     const entradaExistente = await Entrada.findOne({
       where: {
@@ -82,41 +84,63 @@ const agregarEntradasController = async (data) => {
       };
     }
 
+    // Calcular cantidad_real según si tiene subtipos o no
+    let cantidadReal;
+    if (data.subtipos && data.subtipos.length > 0) {
+      // Si tiene subtipos, cantidad_real es la diferencia
+      const totalSubtipos = data.subtipos.reduce((total, subtipo) =>
+        total + parseInt(subtipo.cantidad_disponible), 0
+      );
+      cantidadReal = data.cantidad_total - totalSubtipos;
+    } else {
+      // Si no tiene subtipos, cantidad_real = cantidad_total
+      cantidadReal = data.cantidad_total;
+    }
+
     // Crear entrada principal
     const entrada = await Entrada.create({
       tipo_entrada: data.tipo_entrada,
       descripcion: data.descripcion || null,
       cantidad_total: data.cantidad_total,
-      cantidad_real: data.cantidad_total,
+      cantidad_real: cantidadReal,
       fecha_inicio_venta: data.fecha_inicio_venta || null,
       fecha_fin_venta: data.fecha_fin_venta || null,
       estatus: data.estatus || 'disponible',
       eventoId: data.eventoId
     });
 
-    // Crear subtipos asociados
-    const subtipesData = data.subtipos.map((subtipo, index) => ({
-      nombre: subtipo.nombre,
-      descripcion: subtipo.descripcion || null,
-      precio: subtipo.precio,
-      cantidad_disponible: subtipo.cantidad_disponible,
-      cantidad_vendida: 0,
-      cantidad_reservada: 0,
-      edad_minima: subtipo.edad_minima || null,
-      edad_maxima: subtipo.edad_maxima || null,
-      requiere_documentacion: subtipo.requiere_documentacion || false,
-      orden_visualizacion: index + 1,
-      estatus: 'activo',
-      EntradaId: entrada.id
-    }));
+    let subtipos = [];
+    let numSubtipos = 0;
 
-    const subtipos = await SubtipoEntrada.bulkCreate(subtipesData);
+    // Crear subtipos asociados solo si se proporcionaron
+    if (data.subtipos && data.subtipos.length > 0) {
+      const subtipesData = data.subtipos.map((subtipo, index) => ({
+        nombre: subtipo.nombre,
+        descripcion: subtipo.descripcion || null,
+        precio: subtipo.precio,
+        cantidad_disponible: subtipo.cantidad_disponible,
+        cantidad_vendida: 0,
+        cantidad_reservada: 0,
+        edad_minima: subtipo.edad_minima || null,
+        edad_maxima: subtipo.edad_maxima || null,
+        requiere_documentacion: subtipo.requiere_documentacion || false,
+        orden_visualizacion: index + 1,
+        estatus: 'activo',
+        EntradaId: entrada.id
+      }));
+
+      subtipos = await SubtipoEntrada.bulkCreate(subtipesData);
+      numSubtipos = subtipos.length;
+    }
 
     return {
       success: true,
-      message: "Entrada y subtipos creados exitosamente",
+      message: data.subtipos && data.subtipos.length > 0 ? 
+        "Entrada y subtipos creados exitosamente" : 
+        "Entrada creada exitosamente",
       entradaId: entrada.id,
-      subtipos: subtipos.length,
+      subtipos: numSubtipos,
+      tiene_subtipos: numSubtipos > 0,
       cantidad_real_restante: entrada.cantidad_real,
       capacidad_evento: capacidad,
       total_entradas_evento: totalEntradasExistentes + data.cantidad_total,
@@ -244,16 +268,15 @@ const actualizarEntradaController = async (data) => {
           model: SubtipoEntrada,
           as: 'subtipos',
           where: { estatus: ['activo', 'agotado'] },
-          required: false
+          required: false // Importante: no requerir subtipos
         },
         {
-          model: Evento, // Asumiendo que existe la relación con Evento
-          as: 'evento', // Ajusta el alias según tu modelo
-          attributes: ['capacidad_maxima'] // O el nombre del campo de capacidad
+          model: Eventos, // Corregido: usar el nombre correcto del modelo
+          as: 'Evento',
+          attributes: ['capacidad'] // Usar 'capacidad' según tu modelo anterior
         }
       ]
     });
-
     if (!entrada) {
       return {
         success: false,
@@ -261,53 +284,45 @@ const actualizarEntradaController = async (data) => {
       };
     }
 
-    // Validar capacidad del evento si se actualiza cantidad_total
+    // VALIDAR CAPACIDAD DEL EVENTO si se actualiza cantidad_total
     if (data.cantidad_total !== undefined) {
-      const capacidadEvento = entrada.evento?.capacidad_maxima;
+      const capacidadEvento = entrada.Evento?.capacidad;
 
-      if (capacidadEvento && data.cantidad_total > capacidadEvento) {
+      if (!capacidadEvento || capacidadEvento <= 0) {
+        throw new Error("El evento debe tener una capacidad válida definida");
+      }
+
+      // Obtener el total de entradas de otros tipos para el mismo evento
+      const otrasEntradas = await Entrada.findAll({
+        where: {
+          eventoId: entrada.eventoId, // Usar eventoId según tu modelo
+          id: { [Op.ne]: data.id } // Excluir la entrada actual
+        },
+        attributes: ['cantidad_total']
+      });
+
+      const totalOtrasEntradas = otrasEntradas.reduce((total, entry) =>
+        total + (entry.cantidad_total || 0), 0
+      );
+
+      const totalConNuevaEntrada = totalOtrasEntradas + data.cantidad_total;
+
+      if (totalConNuevaEntrada > capacidadEvento) {
         throw new Error(
-          `La cantidad total de entradas (${data.cantidad_total}) no puede exceder la capacidad del evento (${capacidadEvento})`
+          `El total de entradas del evento (${totalConNuevaEntrada}) excede la capacidad del evento (${capacidadEvento}). Disponible: ${capacidadEvento - totalOtrasEntradas}`
         );
       }
 
-      // Validar que la nueva cantidad sea suficiente para los subtipos existentes
+      // Validar subtipos solo SI LA ENTRADA TIENE SUBTIPOS
       const totalSubtipos = entrada.subtipos?.reduce((total, subtipo) =>
         total + subtipo.cantidad_disponible, 0
       ) || 0;
 
-      if (data.cantidad_total < totalSubtipos) {
+      // Solo validar si hay subtipos existentes
+      if (totalSubtipos > 0 && data.cantidad_total < totalSubtipos) {
         throw new Error(
           `La nueva cantidad total (${data.cantidad_total}) no puede ser menor que la suma actual de subtipos (${totalSubtipos})`
         );
-      }
-    }
-
-    // Validación adicional: verificar que todas las entradas del evento no excedan la capacidad
-    if (data.cantidad_total !== undefined) {
-      const capacidadEvento = entrada.evento?.capacidad_maxima;
-
-      if (capacidadEvento) {
-        // Obtener el total de entradas de otros tipos para el mismo evento
-        const otrasEntradas = await Entrada.findAll({
-          where: {
-            evento_id: entrada.evento_id, // Ajusta según tu modelo
-            id: { [Op.ne]: data.id } // Excluir la entrada actual
-          },
-          attributes: ['cantidad_total']
-        });
-
-        const totalOtrasEntradas = otrasEntradas.reduce((total, entry) =>
-          total + (entry.cantidad_total || 0), 0
-        );
-
-        const totalConNuevaEntrada = totalOtrasEntradas + data.cantidad_total;
-
-        if (totalConNuevaEntrada > capacidadEvento) {
-          throw new Error(
-            `El total de entradas del evento (${totalConNuevaEntrada}) excedería la capacidad máxima (${capacidadEvento}). Otras entradas suman: ${totalOtrasEntradas}`
-          );
-        }
       }
     }
 
@@ -332,15 +347,40 @@ const actualizarEntradaController = async (data) => {
       const totalSubtipos = entrada.subtipos?.reduce((total, subtipo) =>
         total + subtipo.cantidad_disponible, 0
       ) || 0;
-      entrada.cantidad_real = data.cantidad_total - totalSubtipos;
+
+      if (totalSubtipos > 0) {
+        // Si tiene subtipos: cantidad_real = cantidad_total - subtipos
+        entrada.cantidad_real = data.cantidad_total - totalSubtipos;
+      } else {
+        // Si NO tiene subtipos: cantidad_real = cantidad_total
+        entrada.cantidad_real = data.cantidad_total;
+      }
     }
 
     await entrada.save();
+
+    // Información adicional para la respuesta
+    let infoAdicional = {};
+    if (data.cantidad_total !== undefined) {
+      const capacidadEvento = entrada.evento?.capacidad;
+      const totalEntradasEvento = await Entrada.sum('cantidad_total', { 
+        where: { eventoId: entrada.eventoId } 
+      });
+      
+      infoAdicional = {
+        capacidad_evento: capacidadEvento,
+        total_entradas_evento: totalEntradasEvento,
+        capacidad_restante: capacidadEvento - totalEntradasEvento,
+        tiene_subtipos: (entrada.subtipos?.length || 0) > 0,
+        cantidad_subtipos: entrada.subtipos?.length || 0
+      };
+    }
 
     return {
       success: true,
       message: "Entrada actualizada correctamente",
       entrada: entrada,
+      ...infoAdicional
     };
 
   } catch (error) {
