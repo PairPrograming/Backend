@@ -62,29 +62,33 @@ const obtenerContratoController = async (id) => {
   if (!id) {
     return { success: false, message: "Falta id" };
   }
-  
+
   try {
     const contratos = await Contrato.findAll({
-      where: { eventoId: id }
+      where: { eventoId: id },
     });
-    
+
     if (contratos.length === 0) {
-      return { success: false, message: "No se encontraron contratos para este evento" };
+      return {
+        success: false,
+        message: "No se encontraron contratos para este evento",
+      };
     }
-    
+
     return { success: true, data: contratos };
   } catch (error) {
     return { success: false, message: error.message };
   }
 };
+
 const obtenerTodosContratoController = async () => {
   try {
     const contratos = await Contrato.findAll();
-    
+
     if (contratos.length === 0) {
       return { success: false, message: "No se encontraron contratos" };
     }
-    
+
     return { success: true, data: contratos };
   } catch (error) {
     return { success: false, message: error.message };
@@ -96,5 +100,5 @@ module.exports = {
   eliminarContratoController,
   actContratoController,
   obtenerContratoController,
-  obtenerTodosContratoController
+  obtenerTodosContratoController,
 };
