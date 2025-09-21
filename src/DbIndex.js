@@ -131,6 +131,10 @@ Punto_de_venta.belongsToMany(Metodo_de_pago, {
 Users.hasMany(Invitados, { foreignKey: "userId" });
 Invitados.belongsTo(Users, { foreignKey: "userId" });
 
+// Invitados / Eventos
+Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
+Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
+
 //Users / Eventos
 Users.belongsToMany(Eventos, {
   through: "UsuariosEventos",
