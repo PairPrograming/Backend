@@ -142,16 +142,16 @@ const updateUserHandler = async (req, res) => {
 };
 
 const verificarUsuarioHandler = async (req, res) => {
-  const { email, usuario, dni } = req.body;
+  const { email } = req.body;
 
-  if (!email && !usuario && !dni) {
-    return res
-      .status(400)
-      .json({ message: "Debe enviar email, usuario o dni para verificar" });
+  if (!email) {
+    return res.status(400).json({
+      message: "Email es requerido para verificación con Auth0",
+    });
   }
 
   try {
-    const user = await verificarUsuarioController({ email, usuario, dni });
+    const user = await verificarUsuarioController({ email });
 
     if (user) {
       const userData = {
@@ -162,7 +162,7 @@ const verificarUsuarioHandler = async (req, res) => {
         nombre: user.nombre,
         apellido: user.apellido,
         isActive: user.isActive,
-        rol: user.rol || (user.Rol ? user.Rol.rol : "comun"),
+        rol: user.rol || "comun",
       };
 
       return res.status(200).json({
@@ -173,9 +173,10 @@ const verificarUsuarioHandler = async (req, res) => {
       return res.status(200).json({ registrado: false });
     }
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: `Error al verificar el usuario: ${error.message}` });
+    console.error("Error en verificarUsuarioHandler:", error);
+    return res.status(500).json({
+      message: `Error al verificar el usuario: ${error.message}`,
+    });
   }
 };
 
@@ -241,11 +242,9 @@ const updateUserRoleHandler = async (req, res) => {
   const { rol } = req.body;
 
   if (!rol || !["admin", "vendor", "comun", "graduado"].includes(rol)) {
-    return res
-      .status(400)
-      .json({
-        message: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
-      });
+    return res.status(400).json({
+      message: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
+    });
   }
 
   try {

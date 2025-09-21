@@ -1,34 +1,64 @@
-const { Users, Rols } = require("../DbIndex");
-const { Op } = require('sequelize');
+const { Users } = require("../DbIndex");
+const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 
 const createUserController = async (data) => {
   try {
+    console.log("Datos recibidos para crear usuario:", data);
+
+    // Verificar si el usuario ya existe solo por email para Auth0
     const usuarioExistente = await Users.findOne({
-      where: {
-        [Op.or] : [
-          { email : data.email },
-          { usuario: data.usuario}
-        ]
-      }
+      where: { email: data.email },
     });
-    
+
     if (usuarioExistente) {
-      if (usuarioExistente.email === data.email && usuarioExistente.usuario === data.usuario) {
-        throw new Error(`Ya existe un usuario con el email ${data.email} y el usuario ${data.usuario}`);
-      } else if (usuarioExistente.email === data.email) {
-        throw new Error(`Ya existe un usuario con el email ${data.email}`);
-      } else if (usuarioExistente.usuario === data.usuario) {
-        throw new Error(`Ya existe un usuario con el nombre de usuario ${data.usuario}`);
+      // Si ya existe pero tiene auth0Id diferente, podría ser un problema
+      if (
+        usuarioExistente.auth0Id &&
+        usuarioExistente.auth0Id !== data.auth0Id
+      ) {
+        throw new Error(
+          `El email ${data.email} ya está registrado con otra cuenta Auth0`
+        );
       }
+
+      // Si es el mismo usuario de Auth0 intentando registrarse de nuevo
+      if (usuarioExistente.auth0Id === data.auth0Id) {
+        throw new Error(
+          `El usuario con email ${data.email} ya está registrado`
+        );
+      }
+
+      throw new Error(`Ya existe un usuario con el email ${data.email}`);
     }
-    const user = await Users.create(data)
-    return { 
-      success: true, 
+
+    // Para usuarios Auth0, no requerimos todos los campos
+    const userData = {
+      auth0Id: data.auth0Id,
+      email: data.email,
+      nombre: data.nombre || null,
+      apellido: data.apellido || null,
+      rol: data.rol || "comun",
+      isActive: true,
+      // Los demás campos pueden ser null para usuarios Auth0
+      dni: data.dni || null,
+      direccion: data.direccion || null,
+      whatsapp: data.whatsapp || null,
+      usuario: data.usuario || null,
+      password: data.password || null,
+    };
+
+    const user = await Users.create(userData);
+
+    console.log("Usuario creado exitosamente:", user.id);
+
+    return {
+      success: true,
       message: "Usuario creado exitosamente",
-      user: user 
+      user: user,
     };
   } catch (error) {
+    console.error("Error en createUserController:", error);
     throw new Error(`${error.message}`);
   }
 };
@@ -47,13 +77,9 @@ const obtenerUserController = async (id) => {
         "usuario",
         "rol",
         "isActive",
+        "auth0Id",
       ],
-      include: {
-        model: Rols,
-        attributes: ["rol"],
-      },
       raw: true,
-      nest: true,
     });
 
     if (!user) throw new Error("Usuario no encontrado");
@@ -67,12 +93,14 @@ const obtenerUserController = async (id) => {
       direccion: user.direccion || "",
       whatsapp: user.whatsapp || "",
       usuario: user.usuario || "",
-      rol: user.rol || (user.Rol ? user.Rol.rol : "vendor"),
+      rol: user.rol || "comun",
       isActive: user.isActive !== undefined ? user.isActive : true,
+      auth0Id: user.auth0Id || null,
     };
 
     return completeUser;
   } catch (error) {
+    console.error("Error en obtenerUserController:", error);
     throw new Error(`Error al obtener el usuario: ${error.message}`);
   }
 };
@@ -91,20 +119,17 @@ const obtenerUserGridController = async () => {
         "whatsapp",
         "rol",
         "isActive",
+        "auth0Id",
       ],
-      include: {
-        model: Rols,
-        attributes: ["rol"],
-      },
       raw: true,
-      nest: true,
     });
 
     return grid.map((user) => ({
       ...user,
-      rol: user.rol || (user.Rol ? user.Rol.rol : "vendor"),
+      rol: user.rol || "comun",
     }));
   } catch (error) {
+    console.error("Error en obtenerUserGridController:", error);
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
@@ -138,39 +163,41 @@ const updateUserController = async (id, data) => {
 
     return { success: true, message: "Información actualizada correctamente" };
   } catch (error) {
+    console.error("Error en updateUserController:", error);
     throw new Error(
       `Error al actualizar la información del usuario, ${error.message}`
     );
   }
 };
 
-const verificarUsuarioController = async ({ email, usuario, dni }) => {
-  const whereClause = {};
-  if (email) whereClause.email = email;
-  if (usuario) whereClause.usuario = usuario;
-  if (dni) whereClause.dni = dni;
+const verificarUsuarioController = async ({ email }) => {
+  try {
+    console.log("Buscando usuario con email:", email);
 
-  const user = await Users.findOne({
-    where: whereClause,
-    attributes: [
-      "id",
-      "email",
-      "usuario",
-      "dni",
-      "rol",
-      "nombre",
-      "apellido",
-      "isActive",
-      "direccion",
-      "whatsapp",
-    ],
-    include: {
-      model: Rols,
-      attributes: ["rol"],
-    },
-  });
+    const user = await Users.findOne({
+      where: { email },
+      attributes: [
+        "id",
+        "email",
+        "usuario",
+        "dni",
+        "rol",
+        "nombre",
+        "apellido",
+        "isActive",
+        "direccion",
+        "whatsapp",
+        "auth0Id",
+      ],
+    });
 
-  return user;
+    console.log("Usuario encontrado:", user ? user.id : "No encontrado");
+
+    return user;
+  } catch (error) {
+    console.error("Error en verificarUsuarioController:", error);
+    throw error;
+  }
 };
 
 const deleteUserController = async (id) => {
@@ -184,6 +211,7 @@ const deleteUserController = async (id) => {
 
     return { success: true, message: "Usuario eliminado correctamente" };
   } catch (error) {
+    console.error("Error en deleteUserController:", error);
     throw new Error(`Error al eliminar el usuario: ${error.message}`);
   }
 };
@@ -203,6 +231,7 @@ const softDeleteUserController = async (id, isActive) => {
       message: `Usuario marcado como ${isActive ? "activo" : "inactivo"}`,
     };
   } catch (error) {
+    console.error("Error en softDeleteUserController:", error);
     throw new Error(
       `Error al actualizar el estado de usuario: ${error.message}`
     );
@@ -230,11 +259,13 @@ const obtenerUsuariosController = async (isActive) => {
         "dni",
         "direccion",
         "whatsapp",
+        "auth0Id",
       ],
     });
 
     return users;
   } catch (error) {
+    console.error("Error en obtenerUsuariosController:", error);
     throw new Error(`Error al obtener los usuarios: ${error.message}`);
   }
 };
@@ -245,14 +276,24 @@ const changePasswordController = async (id, data) => {
     const user = await Users.findByPk(id, {
       attributes: ["id", "password"],
     });
+
+    if (!user.password) {
+      throw new Error(
+        "Este usuario no tiene contraseña configurada (usuario de Auth0)"
+      );
+    }
+
     const match = await bcrypt.compare(currentpassword, user.password);
     if (!match) {
       throw new Error("La contraseña actual es incorrecta");
     }
+
     user.password = newpassword;
     await user.save();
+
     return { success: true, message: "Contraseña actualizada" };
   } catch (error) {
+    console.error("Error en changePasswordController:", error);
     throw new Error(
       `Error al actualizar la contraseña del usuario, ${error.message}`
     );
@@ -272,6 +313,7 @@ const updateUserRoleController = async (id, rol) => {
 
     return { success: true, message: `Rol del usuario actualizado a ${rol}` };
   } catch (error) {
+    console.error("Error en updateUserRoleController:", error);
     throw new Error(`Error al actualizar el rol del usuario: ${error.message}`);
   }
 };
