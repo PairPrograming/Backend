@@ -2,50 +2,35 @@ const { Users } = require("../DbIndex");
 const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 
+// CONTROLLER
 const createUserController = async (data) => {
   try {
     console.log("Datos recibidos para crear usuario:", data);
 
-    // Verificar si el usuario ya existe solo por email para Auth0
-    const usuarioExistente = await Users.findOne({
-      where: { email: data.email },
-    });
+    // Para roles distintos de graduado → verificamos email único
+    if (data.rol !== "graduado") {
+      const usuarioExistente = await Users.findOne({
+        where: { email: data.email },
+      });
 
-    if (usuarioExistente) {
-      // Si ya existe pero tiene auth0Id diferente, podría ser un problema
-      if (
-        usuarioExistente.auth0Id &&
-        usuarioExistente.auth0Id !== data.auth0Id
-      ) {
-        throw new Error(
-          `El email ${data.email} ya está registrado con otra cuenta Auth0`
-        );
+      if (usuarioExistente) {
+        throw new Error(`Ya existe un usuario con el email ${data.email}`);
       }
-
-      // Si es el mismo usuario de Auth0 intentando registrarse de nuevo
-      if (usuarioExistente.auth0Id === data.auth0Id) {
-        throw new Error(
-          `El usuario con email ${data.email} ya está registrado`
-        );
-      }
-
-      throw new Error(`Ya existe un usuario con el email ${data.email}`);
     }
 
-    // Para usuarios Auth0, no requerimos todos los campos
+    // Si es graduado, solo nombre y apellido se guardan obligatorios
     const userData = {
-      auth0Id: data.auth0Id,
-      email: data.email,
-      nombre: data.nombre || null,
-      apellido: data.apellido || null,
+      auth0Id: data.auth0Id || null,
+      email: data.rol === "graduado" ? null : data.email,
+      nombre: data.nombre,
+      apellido: data.apellido,
       rol: data.rol || "comun",
       isActive: true,
-      // Los demás campos pueden ser null para usuarios Auth0
       dni: data.dni || null,
       direccion: data.direccion || null,
       whatsapp: data.whatsapp || null,
       usuario: data.usuario || null,
-      password: data.password || null,
+      password: data.rol === "graduado" ? null : data.password || null,
     };
 
     const user = await Users.create(userData);
@@ -63,47 +48,6 @@ const createUserController = async (data) => {
   }
 };
 
-const obtenerUserController = async (id) => {
-  try {
-    const user = await Users.findByPk(id, {
-      attributes: [
-        "id",
-        "dni",
-        "nombre",
-        "apellido",
-        "email",
-        "direccion",
-        "whatsapp",
-        "usuario",
-        "rol",
-        "isActive",
-        "auth0Id",
-      ],
-      raw: true,
-    });
-
-    if (!user) throw new Error("Usuario no encontrado");
-
-    const completeUser = {
-      id: user.id,
-      dni: user.dni || "",
-      nombre: user.nombre || "",
-      apellido: user.apellido || "",
-      email: user.email || "",
-      direccion: user.direccion || "",
-      whatsapp: user.whatsapp || "",
-      usuario: user.usuario || "",
-      rol: user.rol || "comun",
-      isActive: user.isActive !== undefined ? user.isActive : true,
-      auth0Id: user.auth0Id || null,
-    };
-
-    return completeUser;
-  } catch (error) {
-    console.error("Error en obtenerUserController:", error);
-    throw new Error(`Error al obtener el usuario: ${error.message}`);
-  }
-};
 
 const obtenerUserGridController = async () => {
   try {
