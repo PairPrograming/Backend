@@ -16,38 +16,38 @@ const crearPagoController = async (data) => {
     taxAmount,
     baseAmount,
     installments,
-  } = data;
+  } = data
 
   if (!ordenId) {
-    return { success: false, message: "El ID de la orden es requerido" };
+    return { success: false, message: "El ID de la orden es requerido" }
   }
 
   if (!estatus) {
-    return { success: false, message: "El estatus del pago es requerido" };
+    return { success: false, message: "El estatus del pago es requerido" }
   }
 
-  const t = await conn.transaction();
+  const t = await conn.transaction()
 
   try {
-    let metodoDePago = null;
-    let comision = 0;
-    let impuestoPorcentaje = Number.parseFloat(taxPercentage) || 0;
+    let metodoDePago = null
+    let comision = 0
+    let impuestoPorcentaje = Number.parseFloat(taxPercentage) || 0
     // Buscar método de pago
     if (metodoDeCobroId) {
-      metodoDePago = await MetodoDePago.findByPk(metodoDeCobroId);
+      metodoDePago = await MetodoDePago.findByPk(metodoDeCobroId)
       if (!metodoDePago) {
-        await t.rollback();
-        return { success: false, message: "Método de cobro no encontrado" };
+        await t.rollback()
+        return { success: false, message: "Método de cobro no encontrado" }
       }
 
       if (metodoDePago.activo === false) {
-        await t.rollback();
-        return { success: false, message: "El método de cobro no está disponible" };
+        await t.rollback()
+        return { success: false, message: "El método de cobro no está disponible" }
       }
-      comision = metodoDePago.comision || 0;
-       if (impuestoPorcentaje === 0 || isNaN(impuestoPorcentaje)) {
-    impuestoPorcentaje = Number.parseFloat(metodoDePago.impuesto) || 0;
-  }
+      comision = metodoDePago.comision || 0
+      if (impuestoPorcentaje === 0 || isNaN(impuestoPorcentaje)) {
+        impuestoPorcentaje = Number.parseFloat(metodoDePago.impuesto) || 0
+      }
     }
 
     const orden = await Orden.findByPk(ordenId, {
@@ -57,151 +57,134 @@ const crearPagoController = async (data) => {
           required: true,
           include: [
             { model: Entrada, required: false },
-            { 
-              model: SubtipoEntrada, 
+            {
+              model: SubtipoEntrada,
               required: false,
-              include: [{ model: Entrada, as: 'entrada', required: false }]
-            }
-          ]
+              include: [{ model: Entrada, as: "entrada", required: false }],
+            },
+          ],
         },
       ],
       transaction: t,
-    });
+    })
 
     if (!orden) {
-      await t.rollback();
-      return { success: false, message: "Orden no encontrada" };
+      await t.rollback()
+      return { success: false, message: "Orden no encontrada" }
     }
 
     if (orden.estado === "pagado") {
-      await t.rollback();
-      return { success: false, message: "La orden ya ha sido pagada" };
+      await t.rollback()
+      return { success: false, message: "La orden ya ha sido pagada" }
     }
 
     if (orden.estado === "cancelado") {
-      await t.rollback();
-      return { success: false, message: "No se puede pagar una orden cancelada" };
+      await t.rollback()
+      return { success: false, message: "No se puede pagar una orden cancelada" }
     }
 
     if (!orden.DetalleDeOrdens || orden.DetalleDeOrdens.length === 0) {
-      await t.rollback();
-      return { success: false, message: "La orden no tiene detalles de compra" };
+      await t.rollback()
+      return { success: false, message: "La orden no tiene detalles de compra" }
     }
 
     const pagoExistente = await Pago.findOne({
       where: { ordenId },
       transaction: t,
-    });
+    })
 
     if (pagoExistente) {
-      await t.rollback();
+      await t.rollback()
       return {
         success: false,
         message: "El pago ya ha sido registrado previamente para esta orden.",
-      };
-    }
-
-    // Verificar referencia duplicada
-    if (referencia && metodoDeCobroId) {
-      const referenciaExistente = await Pago.findOne({
-        where: { referencia, metodoDeCobroId },
-        transaction: t,
-      });
-
-      if (referenciaExistente) {
-        await t.rollback();
-        return {
-          success: false,
-          message: "La referencia ya existe para este método de pago",
-        };
       }
     }
 
     // VALIDACIÓN DE STOCK - CORREGIDA
-    const erroresStock = [];
+    const erroresStock = []
 
     for (const detalle of orden.DetalleDeOrdens) {
       // Caso 1: Subtipo de entrada
       if (detalle.subtipoEntradaId && detalle.SubtipoEntrada) {
-        const subtipo = detalle.SubtipoEntrada;
+        const subtipo = detalle.SubtipoEntrada
 
         if (subtipo.estatus !== "activo") {
-          erroresStock.push(`El subtipo ${subtipo.nombre} no está disponible para venta`);
-          continue;
+          erroresStock.push(`El subtipo ${subtipo.nombre} no está disponible para venta`)
+          continue
         }
 
         if (detalle.cantidad <= 0) {
-          erroresStock.push(`La cantidad debe ser mayor a cero para ${subtipo.nombre}`);
-          continue;
+          erroresStock.push(`La cantidad debe ser mayor a cero para ${subtipo.nombre}`)
+          continue
         }
 
         if (subtipo.cantidad_disponible < detalle.cantidad) {
           erroresStock.push(
-            `Stock insuficiente para ${subtipo.nombre}. Disponible: ${subtipo.cantidad_disponible}, Solicitado: ${detalle.cantidad}`
-          );
+            `Stock insuficiente para ${subtipo.nombre}. Disponible: ${subtipo.cantidad_disponible}, Solicitado: ${detalle.cantidad}`,
+          )
         }
       }
       // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId && detalle.Entrada) {
-        const entrada = detalle.Entrada;
+        const entrada = detalle.Entrada
 
         if (entrada.estatus !== "disponible") {
-          erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`);
-          continue;
+          erroresStock.push(`La entrada ${entrada.tipo_entrada} no está disponible para venta`)
+          continue
         }
 
         if (detalle.cantidad <= 0) {
-          erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`);
-          continue;
+          erroresStock.push(`La cantidad debe ser mayor a cero para ${entrada.tipo_entrada}`)
+          continue
         }
 
         // CORREGIDO: Usar cantidad_real en lugar de cantidad
         if (entrada.cantidad_real < detalle.cantidad) {
           erroresStock.push(
-            `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad_real}, Solicitado: ${detalle.cantidad}`
-          );
+            `Stock insuficiente para ${entrada.tipo_entrada}. Disponible: ${entrada.cantidad_real}, Solicitado: ${detalle.cantidad}`,
+          )
         }
-      }
-      else {
-        erroresStock.push(`Detalle de orden inválido: debe tener entradaId o subtipoEntradaId`);
+      } else {
+        erroresStock.push(`Detalle de orden inválido: debe tener entradaId o subtipoEntradaId`)
       }
     }
 
     if (erroresStock.length > 0) {
-      await t.rollback();
+      await t.rollback()
       return {
         success: false,
         message: `Errores de stock: ${erroresStock.join("; ")}`,
-      };
+      }
     }
 
     // Cálculo de montos
-    let montoBase, comisionMonto, impuestoMonto, total;
-    const imagenUrl = imagen;
+    let montoBase, comisionMonto, impuestoMonto, total
+    const imagenUrl = imagen
 
     if (baseAmount !== undefined && taxAmount !== undefined) {
-      montoBase = Number.parseFloat(baseAmount);
-      impuestoMonto = Number.parseFloat(taxAmount);
-      comisionMonto = Math.round(montoBase * (Number.parseFloat(comision) / 100) * 100) / 100;
-      total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100;
+      montoBase = Number.parseFloat(baseAmount)
+      impuestoMonto = Number.parseFloat(taxAmount)
+      comisionMonto = Math.round(montoBase * (Number.parseFloat(comision) / 100) * 100) / 100
+      total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100
     } else {
-      montoBase = Number.parseFloat(orden.total);
-      const comisionPorcentaje = Number.parseFloat(comision) || 0;
-      comisionMonto = Math.round(montoBase * (comisionPorcentaje / 100) * 100) / 100;
-      impuestoMonto = Math.round((montoBase + comisionMonto) * (impuestoPorcentaje / 100) * 100) / 100;
-      total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100;
+      montoBase = Number.parseFloat(orden.total)
+      const comisionPorcentaje = Number.parseFloat(comision) || 0
+      comisionMonto = Math.round(montoBase * (comisionPorcentaje / 100) * 100) / 100
+      impuestoMonto = Math.round((montoBase + comisionMonto) * (impuestoPorcentaje / 100) * 100) / 100
+      total = Math.round((montoBase + comisionMonto + impuestoMonto) * 100) / 100
     }
 
     if (montoBase <= 0) {
-      await t.rollback();
-      return { success: false, message: "El monto de la orden debe ser mayor a cero" };
+      await t.rollback()
+      return { success: false, message: "El monto de la orden debe ser mayor a cero" }
     }
 
     if (montoRecibido !== undefined && montoRecibido !== null) {
-      const montoRecibidoNum = Number.parseFloat(montoRecibido);
+      const montoRecibidoNum = Number.parseFloat(montoRecibido)
       if (isNaN(montoRecibidoNum)) {
-        await t.rollback();
-        return { success: false, message: "El monto recibido debe ser un número válido" };
+        await t.rollback()
+        return { success: false, message: "El monto recibido debe ser un número válido" }
       }
     }
 
@@ -224,58 +207,60 @@ const crearPagoController = async (data) => {
         fecha_cancelacion: fecha_cancelacion || null,
         motivo_cancelacion: motivo_cancelacion || null,
       },
-      { transaction: t }
-    );
+      { transaction: t },
+    )
 
     // ACTUALIZACIÓN DE STOCK - CORREGIDA
     for (const detalle of orden.DetalleDeOrdens) {
       // Caso 1: Subtipo de entrada
       if (detalle.subtipoEntradaId) {
-        const subtipo = detalle.SubtipoEntrada || await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
-          include: [{ model: Entrada, as: 'entrada' }],
-          transaction: t
-        });
-        
+        const subtipo =
+          detalle.SubtipoEntrada ||
+          (await SubtipoEntrada.findByPk(detalle.subtipoEntradaId, {
+            include: [{ model: Entrada, as: "entrada" }],
+            transaction: t,
+          }))
+
         if (subtipo) {
           // Actualizar subtipo
-          subtipo.cantidad_disponible -= detalle.cantidad;
-          subtipo.cantidad_vendida += detalle.cantidad;
-          
+          subtipo.cantidad_disponible -= detalle.cantidad
+          subtipo.cantidad_vendida += detalle.cantidad
+
           if (subtipo.cantidad_disponible <= 0) {
-            subtipo.estatus = "agotado";
-            subtipo.cantidad_disponible = 0; // Evitar negativos
+            subtipo.estatus = "agotado"
+            subtipo.cantidad_disponible = 0 // Evitar negativos
           }
-          
-          await subtipo.save({ transaction: t });
+
+          await subtipo.save({ transaction: t })
 
           // Actualizar entrada padre si existe - CORREGIDO
           if (subtipo.entrada) {
             // CORREGIDO: Usar cantidad_real en lugar de cantidad
-            subtipo.entrada.cantidad_real -= detalle.cantidad;
-            
+            subtipo.entrada.cantidad_real -= detalle.cantidad
+
             if (subtipo.entrada.cantidad_real <= 0) {
-              subtipo.entrada.estatus = "agotado";
-              subtipo.entrada.cantidad_real = 0; // Evitar negativos
+              subtipo.entrada.estatus = "agotado"
+              subtipo.entrada.cantidad_real = 0 // Evitar negativos
             }
-            
-            await subtipo.entrada.save({ transaction: t });
+
+            await subtipo.entrada.save({ transaction: t })
           }
         }
-      } 
+      }
       // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId) {
-        const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
-        
+        const entrada = detalle.Entrada || (await Entrada.findByPk(detalle.entradaId, { transaction: t }))
+
         if (entrada) {
           // CORREGIDO: Usar cantidad_real en lugar de cantidad
-          entrada.cantidad_real -= detalle.cantidad;
-          
+          entrada.cantidad_real -= detalle.cantidad
+
           if (entrada.cantidad_real <= 0) {
-            entrada.estatus = "agotado";
-            entrada.cantidad_real = 0; // Evitar negativos
+            entrada.estatus = "agotado"
+            entrada.cantidad_real = 0 // Evitar negativos
           }
-          
-          await entrada.save({ transaction: t });
+
+          await entrada.save({ transaction: t })
         }
       }
     }
@@ -287,11 +272,11 @@ const crearPagoController = async (data) => {
           estado: "pagado",
           fecha_actualizacion: new Date(),
         },
-        { transaction: t }
-      );
+        { transaction: t },
+      )
     }
 
-    await t.commit();
+    await t.commit()
 
     return {
       success: true,
@@ -309,18 +294,19 @@ const crearPagoController = async (data) => {
           calculoUsado: baseAmount !== undefined && taxAmount !== undefined ? "Frontend (cuotas)" : "Tradicional",
         },
       },
-    };
+    }
   } catch (error) {
     if (!t.finished) {
-      await t.rollback();
+      await t.rollback()
     }
 
     return {
       success: false,
       message: `Error interno: ${error.message}`,
-    };
+    }
   }
-};
+}
+
 
 const cancelarPagoController = async (pagoId, motivo) => {
   const t = await conn.transaction();
