@@ -11,15 +11,12 @@ const agregarEntradasController = async (data) => {
       }
     }
 
-    // Validar subtipos solo si se proporcionan
-    if (data.subtipos) {
-      // Validar que subtipos sea un array y no esté vacío (si se proporciona)
-      if (!Array.isArray(data.subtipos) || data.subtipos.length === 0) {
-        throw new Error(
-          "Si se proporcionan subtipos, debe incluir al menos uno"
-        );
-      }
-
+    // Validar subtipos solo si se proporcionan y no están vacíos
+    if (
+      data.subtipos &&
+      Array.isArray(data.subtipos) &&
+      data.subtipos.length > 0
+    ) {
       // Validar estructura de subtipos
       for (const subtipo of data.subtipos) {
         if (
@@ -292,12 +289,12 @@ const actualizarEntradaController = async (data) => {
           model: SubtipoEntrada,
           as: "subtipos",
           where: { estatus: ["activo", "agotado"] },
-          required: false, // Importante: no requerir subtipos
+          required: false,
         },
         {
-          model: Eventos, // Corregido: usar el nombre correcto del modelo
+          model: Eventos,
           as: "Evento",
-          attributes: ["capacidad"], // Usar 'capacidad' según tu modelo anterior
+          attributes: ["capacidad"],
         },
       ],
     });
@@ -319,8 +316,8 @@ const actualizarEntradaController = async (data) => {
       // Obtener el total de entradas de otros tipos para el mismo evento
       const otrasEntradas = await Entrada.findAll({
         where: {
-          eventoId: entrada.eventoId, // Usar eventoId según tu modelo
-          id: { [Op.ne]: data.id }, // Excluir la entrada actual
+          eventoId: entrada.eventoId,
+          id: { [Op.ne]: data.id },
         },
         attributes: ["cantidad_total"],
       });
@@ -393,7 +390,7 @@ const actualizarEntradaController = async (data) => {
     // Información adicional para la respuesta
     let infoAdicional = {};
     if (data.cantidad_total !== undefined) {
-      const capacidadEvento = entrada.evento?.capacidad;
+      const capacidadEvento = entrada.Evento?.capacidad;
       const totalEntradasEvento = await Entrada.sum("cantidad_total", {
         where: { eventoId: entrada.eventoId },
       });
@@ -508,7 +505,7 @@ const actualizarSubtipoController = async (data) => {
           as: "subtipos",
           where: {
             estatus: ["activo", "agotado"],
-            id: { [Op.ne]: data.id }, // Excluir el subtipo actual
+            id: { [Op.ne]: data.id },
           },
           required: false,
         },
@@ -601,7 +598,7 @@ const obtenerEntradaByIdController = async (id) => {
           model: SubtipoEntrada,
           as: "subtipos",
           required: false,
-          where: { estatus: ["activo", "agotado"] }, // Solo subtipos activos
+          where: { estatus: ["activo", "agotado"] },
         },
       ],
     });
