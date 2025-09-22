@@ -10,27 +10,36 @@ const server = express();
 
 server.name = "API";
 
-// Configuración de CORS
+//  Configuración de CORS ABIERTA (solo para pruebas)
 server.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://backend-production-40d9.up.railway.app",
-      "https://backend-production-687d.up.railway.app",
-      "https://front-psi-rosy.vercel.app",
-      "https://develop-colour.vercel.app",
-      "https://backend-production-d353.up.railway.app",
-      "https://www.ticketxevent.com",
-      "https://ticketxevent.com",
-
-    ],
-    credentials: true,
+    origin: "*", // acepta cualquier origen
     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allowedHeaders:
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
   })
 );
+
+// ⚠️ Configuración de CORS con whitelist (comentada por ahora)
+// server.use(
+//   cors({
+//     origin: [
+//       "http://localhost:5173",
+//       "http://localhost:3000",
+//       "https://backend-production-40d9.up.railway.app",
+//       "https://backend-production-687d.up.railway.app",
+//       "https://front-psi-rosy.vercel.app",
+//       "https://develop-colour.vercel.app",
+//       "https://backend-production-d353.up.railway.app",
+//       "https://www.ticketxevent.com",
+//       "https://ticketxevent.com",
+//     ],
+//     credentials: true,
+//     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
+//     allowedHeaders:
+//       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+//   })
+// );
 
 // Configuración de express.json() en lugar de bodyParser
 server.use(express.json({ limit: "50mb" }));
