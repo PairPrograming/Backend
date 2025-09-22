@@ -4,6 +4,7 @@ const {
   obtenerUserGridController,
   updateUserController,
   verificarUsuarioController,
+  verificarUsuarioPorNombreController,
   deleteUserController,
   softDeleteUserController,
   obtenerUsuariosController,
@@ -22,7 +23,7 @@ const createUserHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
-    rol
+    rol,
   } = req.body;
   try {
     const userData = {
@@ -35,7 +36,7 @@ const createUserHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      rol
+      rol: rol || "comun", // Asegurar rol predeterminado
     };
     await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
@@ -55,7 +56,7 @@ const crearUsuarioAdminHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
-    roleId,
+    rol,
   } = req.body;
 
   try {
@@ -69,12 +70,31 @@ const crearUsuarioAdminHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      roleId,
+      rol: rol || "comun", // Asegurar rol predeterminado
     };
     await createUserController(userData);
     return res.status(201).json({ message: "Usuario creado por admin" });
   } catch (error) {
     return res.status(400).json({ message: error.message });
+  }
+};
+
+const verificarUsuarioPorNombreHandler = async (req, res) => {
+  const { usuario } = req.body;
+
+  if (!usuario) {
+    return res.status(400).json({
+      message: "El nombre de usuario es requerido para la verificación",
+    });
+  }
+
+  try {
+    const result = await verificarUsuarioPorNombreController({ usuario });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message: `Error al verificar el nombre de usuario: ${error.message}`,
+    });
   }
 };
 
@@ -264,6 +284,7 @@ module.exports = {
   obtenerUserGridHandler,
   updateUserHandler,
   verificarUsuarioHandler,
+  verificarUsuarioPorNombreHandler,
   deleteUserHandler,
   softDeleteUserHandler,
   obtenerUsuariosHandler,
