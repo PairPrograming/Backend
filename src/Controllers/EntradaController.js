@@ -465,13 +465,13 @@ const agregarSubtipoController = async (data) => {
     const subtipo = await SubtipoEntrada.create(data);
 
     // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real = nuevaCantidadTotal;
+    entrada.cantidad_real = entrada.cantidad_total - nuevaCantidadTotal;
     await entrada.save();
     return {
       success: true,
       message: "Subtipo creado exitosamente",
       subtipoId: subtipo.id,
-      cantidad_real_restante: entrada.cantidad_total - entrada.cantidad_real,
+      cantidad_real_restante: entrada.cantidad_real,
     };
   } catch (error) {
     return {
@@ -567,7 +567,13 @@ const actualizarSubtipoController = async (data) => {
     // Si cambió la cantidad, actualizar cantidad_real de la entrada
     if (data.cantidad_disponible !== undefined) {
       const diferencia = parseInt(data.cantidad_disponible) - cantidadAnterior;
-      entrada.cantidad_real -= diferencia;
+      entrada.cantidad_real =
+        entrada.cantidad_total -
+        (entrada.subtipos?.reduce(
+          (total, s) => total + s.cantidad_disponible,
+          0
+        ) || 0) -
+        parseInt(data.cantidad_disponible);
       await entrada.save();
     }
 
@@ -646,8 +652,20 @@ const deleteSubtipoController = async (subtipoId) => {
       };
     }
 
-    // Obtener la entrada padre para actualizar cantidad_real
-    const entrada = await Entrada.findByPk(subtipo.EntradaId);
+    // Obtener la entrada padre con todos los subtipos activos (excluyendo el que se va a eliminar)
+    const entrada = await Entrada.findByPk(subtipo.EntradaId, {
+      include: [
+        {
+          model: SubtipoEntrada,
+          as: "subtipos",
+          where: {
+            estatus: ["activo", "agotado"],
+            id: { [Op.ne]: subtipoId }, // Excluir el subtipo que se eliminará
+          },
+          required: false,
+        },
+      ],
+    });
 
     if (!entrada) {
       throw new Error("No se encontró la entrada asociada al subtipo");
@@ -658,8 +676,14 @@ const deleteSubtipoController = async (subtipoId) => {
       where: { id: subtipoId },
     });
 
-    // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real += subtipo.cantidad_disponible;
+    // Calcular la nueva cantidad_real: cantidad_total - suma de cantidades disponibles de subtipos restantes
+    const totalSubtiposRestantes =
+      entrada.subtipos?.reduce(
+        (total, s) => total + s.cantidad_disponible,
+        0
+      ) || 0;
+
+    entrada.cantidad_real = entrada.cantidad_total - totalSubtiposRestantes;
     await entrada.save();
 
     return {
