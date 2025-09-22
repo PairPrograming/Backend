@@ -2,9 +2,6 @@ const { Users } = require("../DbIndex");
 const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 
-const { Users } = require("../DbIndex");
-const { Op } = require("sequelize");
-const bcrypt = require("bcrypt");
 
 const createUserController = async (data) => {
   try {
