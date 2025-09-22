@@ -22,6 +22,7 @@ const createUserHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
+    rol
   } = req.body;
   try {
     const userData = {
@@ -34,6 +35,7 @@ const createUserHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
+      rol
     };
     await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
