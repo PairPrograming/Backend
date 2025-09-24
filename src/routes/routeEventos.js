@@ -59,9 +59,9 @@ routeEvento.delete("/esalon/:eventoId/:salonId", deleteSalonEventoHandler);
 //Add User to event
 routeEvento.post("/euser", addUserToEventHandler);
 //delete User to event
-routeEvento.delete("/euser/:id", deleteSalonEventoHandler);
+routeEvento.delete("/euser/:id", removeUserFromEventHandler);
 //get user to event
-routeEvento.get("/euser", getEventoHandler);
+routeEvento.get("/euser/:id", getUsersByEventHandler);
 
 routeEvento.post("/:id/contrato", createContratoHandler);
 routeEvento.get("/:id/contrato", obtenerContratoHandler);
