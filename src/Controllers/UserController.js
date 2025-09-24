@@ -77,7 +77,7 @@ const createUserController = async (data) => {
     return {
       success: true,
       message: "Usuario creado exitosamente",
-      user,
+      user: user.get({ plain: true }),
     };
   } catch (error) {
     console.error("Error en createUserController:", error);
