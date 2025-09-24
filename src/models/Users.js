@@ -20,7 +20,7 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (
               this.rol !== "graduado" &&
@@ -30,30 +30,30 @@ module.exports = (sequelize) => {
               throw new Error("DNI es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       nombre: {
         type: DataTypes.STRING,
         allowNull: false, // Required for all users
-        validate: {
+        /*validate: {
           notEmpty: {
             msg: "Nombre es obligatorio",
           },
-        },
+        },*/
       },
       apellido: {
         type: DataTypes.STRING,
         allowNull: false, // Required for all users
-        validate: {
+        /*validate: {
           notEmpty: {
             msg: "Apellido es obligatorio",
           },
-        },
+        },*/
       },
       direccion: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (
               this.rol !== "graduado" &&
@@ -63,7 +63,7 @@ module.exports = (sequelize) => {
               throw new Error("Dirección es obligatoria si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       email: {
         type: DataTypes.STRING,
@@ -78,7 +78,7 @@ module.exports = (sequelize) => {
       whatsapp: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (
               this.rol !== "graduado" &&
@@ -88,13 +88,13 @@ module.exports = (sequelize) => {
               throw new Error("Whatsapp es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       usuario: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
             if (
               this.rol !== "graduado" &&
@@ -104,7 +104,7 @@ module.exports = (sequelize) => {
               throw new Error("Usuario es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       password: {
         type: DataTypes.STRING,
