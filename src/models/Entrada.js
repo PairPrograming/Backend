@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
       },
       precio: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
       },
       cantidad_total: {
         type: DataTypes.INTEGER,
