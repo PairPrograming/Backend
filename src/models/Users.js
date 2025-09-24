@@ -22,7 +22,11 @@ module.exports = (sequelize) => {
         unique: true,
         validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("DNI es obligatorio si no se usa Auth0");
             }
           },
@@ -30,23 +34,19 @@ module.exports = (sequelize) => {
       },
       nombre: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false, // Required for all users
         validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Nombre es obligatorio si no se usa Auth0");
-            }
+          notEmpty: {
+            msg: "Nombre es obligatorio",
           },
         },
       },
       apellido: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false, // Required for all users
         validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Apellido es obligatorio si no se usa Auth0");
-            }
+          notEmpty: {
+            msg: "Apellido es obligatorio",
           },
         },
       },
@@ -55,7 +55,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Dirección es obligatoria si no se usa Auth0");
             }
           },
@@ -76,7 +80,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Whatsapp es obligatorio si no se usa Auth0");
             }
           },
@@ -88,7 +96,11 @@ module.exports = (sequelize) => {
         unique: true,
         validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Usuario es obligatorio si no se usa Auth0");
             }
           },
@@ -99,7 +111,7 @@ module.exports = (sequelize) => {
         allowNull: true,
         validate: {
           notNullIfNoAuth0(value) {
-            if (!this.auth0Id && !value) {
+            if (this.rol !== "graduado" && !this.auth0Id && !value) {
               throw new Error("Debe establecer una contraseña o usar Auth0");
             }
           },
