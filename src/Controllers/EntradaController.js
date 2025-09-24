@@ -4,11 +4,15 @@ const { Op } = require("sequelize");
 const agregarEntradasController = async (data) => {
   try {
     // Validación básica
-    const validate = ["eventoId", "tipo_entrada", "cantidad_total"];
+    const validate = ["eventoId", "tipo_entrada", "cantidad_total", "precio"];
     for (const valid of validate) {
       if (!data[valid]) {
         throw new Error(`El campo ${valid} es requerido`);
       }
+    }
+
+    if (parseFloat(data.precio) <= 0) {
+      throw new Error("El precio debe ser mayor que cero");
     }
 
     // Validar subtipos solo si se proporcionan y no están vacíos
@@ -110,6 +114,7 @@ const agregarEntradasController = async (data) => {
     const entrada = await Entrada.create({
       tipo_entrada: data.tipo_entrada,
       descripcion: data.descripcion || null,
+      precio: parseFloat(data.precio),
       cantidad_total: data.cantidad_total,
       cantidad_real: cantidadReal,
       fecha_inicio_venta: data.fecha_inicio_venta || null,
@@ -126,7 +131,7 @@ const agregarEntradasController = async (data) => {
       const subtipesData = data.subtipos.map((subtipo, index) => ({
         nombre: subtipo.nombre,
         descripcion: subtipo.descripcion || null,
-        precio: subtipo.precio,
+        precio: parseFloat(subtipo.precio),
         cantidad_disponible: subtipo.cantidad_disponible,
         cantidad_vendida: 0,
         cantidad_reservada: 0,
@@ -208,8 +213,15 @@ const obtenerEntradasController = async (eventoId) => {
           total_disponibles: totalDisponibles,
           total_asignados_subtipos: totalAsignados,
           cantidad_real_restante: entrada.cantidad_total - totalAsignados,
-          precio_minimo: precios.length > 0 ? Math.min(...precios) : 0,
-          precio_maximo: precios.length > 0 ? Math.max(...precios) : 0,
+          precio: parseFloat(entrada.precio),
+          precio_minimo:
+            precios.length > 0
+              ? Math.min(...precios)
+              : parseFloat(entrada.precio),
+          precio_maximo:
+            precios.length > 0
+              ? Math.max(...precios)
+              : parseFloat(entrada.precio),
           cantidad_subtipos: subtipos.length,
         },
       };
@@ -305,6 +317,11 @@ const actualizarEntradaController = async (data) => {
       };
     }
 
+    // VALIDAR PRECIO
+    if (data.precio !== undefined && parseFloat(data.precio) <= 0) {
+      throw new Error("El precio debe ser mayor que cero");
+    }
+
     // VALIDAR CAPACIDAD DEL EVENTO si se actualiza cantidad_total
     if (data.cantidad_total !== undefined) {
       const capacidadEvento = entrada.Evento?.capacidad;
@@ -356,6 +373,7 @@ const actualizarEntradaController = async (data) => {
     const camposActualizables = [
       "tipo_entrada",
       "descripcion",
+      "precio",
       "cantidad_total",
       "fecha_inicio_venta",
       "fecha_fin_venta",
@@ -364,7 +382,8 @@ const actualizarEntradaController = async (data) => {
 
     camposActualizables.forEach((campo) => {
       if (data[campo] !== undefined) {
-        entrada[campo] = data[campo];
+        entrada[campo] =
+          campo === "precio" ? parseFloat(data[campo]) : data[campo];
       }
     });
 
@@ -462,7 +481,10 @@ const agregarSubtipoController = async (data) => {
       );
     }
 
-    const subtipo = await SubtipoEntrada.create(data);
+    const subtipo = await SubtipoEntrada.create({
+      ...data,
+      precio: parseFloat(data.precio),
+    });
 
     // Actualizar cantidad_real de la entrada
     entrada.cantidad_real = entrada.cantidad_total - nuevaCantidadTotal;
@@ -558,7 +580,8 @@ const actualizarSubtipoController = async (data) => {
 
     camposActualizables.forEach((campo) => {
       if (data[campo] !== undefined) {
-        subtipo[campo] = data[campo];
+        subtipo[campo] =
+          campo === "precio" ? parseFloat(data[campo]) : data[campo];
       }
     });
 
@@ -618,7 +641,10 @@ const obtenerEntradaByIdController = async (id) => {
 
     return {
       success: true,
-      data: result,
+      data: {
+        ...result.toJSON(),
+        precio: parseFloat(result.precio),
+      },
     };
   } catch (error) {
     return {
@@ -660,7 +686,7 @@ const deleteSubtipoController = async (subtipoId) => {
           as: "subtipos",
           where: {
             estatus: ["activo", "agotado"],
-            id: { [Op.ne]: subtipoId }, // Excluir el subtipo que se eliminará
+            id: { [Op.ne]: subtipoId },
           },
           required: false,
         },
@@ -676,7 +702,7 @@ const deleteSubtipoController = async (subtipoId) => {
       where: { id: subtipoId },
     });
 
-    // Calcular la nueva cantidad_real: cantidad_total - suma de cantidades disponibles de subtipos restantes
+    // Calcular la nueva cantidad_real
     const totalSubtiposRestantes =
       entrada.subtipos?.reduce(
         (total, s) => total + s.cantidad_disponible,
