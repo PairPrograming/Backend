@@ -4,22 +4,23 @@ const { Op } = require("sequelize");
 const agregarEntradasController = async (data) => {
   try {
     // Validación básica
-    const validate = ["eventoId", "tipo_entrada", "cantidad_total"];
+    const validate = ["eventoId", "tipo_entrada", "cantidad_total", "precio"];
     for (const valid of validate) {
       if (!data[valid]) {
         throw new Error(`El campo ${valid} es requerido`);
       }
     }
 
-    // Validar subtipos solo si se proporcionan
-    if (data.subtipos) {
-      // Validar que subtipos sea un array y no esté vacío (si se proporciona)
-      if (!Array.isArray(data.subtipos) || data.subtipos.length === 0) {
-        throw new Error(
-          "Si se proporcionan subtipos, debe incluir al menos uno"
-        );
-      }
+    if (parseFloat(data.precio) <= 0) {
+      throw new Error("El precio debe ser mayor que cero");
+    }
 
+    // Validar subtipos solo si se proporcionan y no están vacíos
+    if (
+      data.subtipos &&
+      Array.isArray(data.subtipos) &&
+      data.subtipos.length > 0
+    ) {
       // Validar estructura de subtipos
       for (const subtipo of data.subtipos) {
         if (
@@ -113,6 +114,7 @@ const agregarEntradasController = async (data) => {
     const entrada = await Entrada.create({
       tipo_entrada: data.tipo_entrada,
       descripcion: data.descripcion || null,
+      precio: parseFloat(data.precio),
       cantidad_total: data.cantidad_total,
       cantidad_real: cantidadReal,
       fecha_inicio_venta: data.fecha_inicio_venta || null,
@@ -129,7 +131,7 @@ const agregarEntradasController = async (data) => {
       const subtipesData = data.subtipos.map((subtipo, index) => ({
         nombre: subtipo.nombre,
         descripcion: subtipo.descripcion || null,
-        precio: subtipo.precio,
+        precio: parseFloat(subtipo.precio),
         cantidad_disponible: subtipo.cantidad_disponible,
         cantidad_vendida: 0,
         cantidad_reservada: 0,
@@ -211,8 +213,15 @@ const obtenerEntradasController = async (eventoId) => {
           total_disponibles: totalDisponibles,
           total_asignados_subtipos: totalAsignados,
           cantidad_real_restante: entrada.cantidad_total - totalAsignados,
-          precio_minimo: precios.length > 0 ? Math.min(...precios) : 0,
-          precio_maximo: precios.length > 0 ? Math.max(...precios) : 0,
+          precio: parseFloat(entrada.precio),
+          precio_minimo:
+            precios.length > 0
+              ? Math.min(...precios)
+              : parseFloat(entrada.precio),
+          precio_maximo:
+            precios.length > 0
+              ? Math.max(...precios)
+              : parseFloat(entrada.precio),
           cantidad_subtipos: subtipos.length,
         },
       };
@@ -292,12 +301,12 @@ const actualizarEntradaController = async (data) => {
           model: SubtipoEntrada,
           as: "subtipos",
           where: { estatus: ["activo", "agotado"] },
-          required: false, // Importante: no requerir subtipos
+          required: false,
         },
         {
-          model: Eventos, // Corregido: usar el nombre correcto del modelo
+          model: Eventos,
           as: "Evento",
-          attributes: ["capacidad"], // Usar 'capacidad' según tu modelo anterior
+          attributes: ["capacidad"],
         },
       ],
     });
@@ -306,6 +315,11 @@ const actualizarEntradaController = async (data) => {
         success: false,
         message: `No se encontró entrada con id: ${data.id}`,
       };
+    }
+
+    // VALIDAR PRECIO
+    if (data.precio !== undefined && parseFloat(data.precio) <= 0) {
+      throw new Error("El precio debe ser mayor que cero");
     }
 
     // VALIDAR CAPACIDAD DEL EVENTO si se actualiza cantidad_total
@@ -319,8 +333,8 @@ const actualizarEntradaController = async (data) => {
       // Obtener el total de entradas de otros tipos para el mismo evento
       const otrasEntradas = await Entrada.findAll({
         where: {
-          eventoId: entrada.eventoId, // Usar eventoId según tu modelo
-          id: { [Op.ne]: data.id }, // Excluir la entrada actual
+          eventoId: entrada.eventoId,
+          id: { [Op.ne]: data.id },
         },
         attributes: ["cantidad_total"],
       });
@@ -359,6 +373,7 @@ const actualizarEntradaController = async (data) => {
     const camposActualizables = [
       "tipo_entrada",
       "descripcion",
+      "precio",
       "cantidad_total",
       "fecha_inicio_venta",
       "fecha_fin_venta",
@@ -367,7 +382,8 @@ const actualizarEntradaController = async (data) => {
 
     camposActualizables.forEach((campo) => {
       if (data[campo] !== undefined) {
-        entrada[campo] = data[campo];
+        entrada[campo] =
+          campo === "precio" ? parseFloat(data[campo]) : data[campo];
       }
     });
 
@@ -393,7 +409,7 @@ const actualizarEntradaController = async (data) => {
     // Información adicional para la respuesta
     let infoAdicional = {};
     if (data.cantidad_total !== undefined) {
-      const capacidadEvento = entrada.evento?.capacidad;
+      const capacidadEvento = entrada.Evento?.capacidad;
       const totalEntradasEvento = await Entrada.sum("cantidad_total", {
         where: { eventoId: entrada.eventoId },
       });
@@ -465,16 +481,19 @@ const agregarSubtipoController = async (data) => {
       );
     }
 
-    const subtipo = await SubtipoEntrada.create(data);
+    const subtipo = await SubtipoEntrada.create({
+      ...data,
+      precio: parseFloat(data.precio),
+    });
 
     // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real = nuevaCantidadTotal;
+    entrada.cantidad_real = entrada.cantidad_total - nuevaCantidadTotal;
     await entrada.save();
     return {
       success: true,
       message: "Subtipo creado exitosamente",
       subtipoId: subtipo.id,
-      cantidad_real_restante: entrada.cantidad_total - entrada.cantidad_real,
+      cantidad_real_restante: entrada.cantidad_real,
     };
   } catch (error) {
     return {
@@ -508,7 +527,7 @@ const actualizarSubtipoController = async (data) => {
           as: "subtipos",
           where: {
             estatus: ["activo", "agotado"],
-            id: { [Op.ne]: data.id }, // Excluir el subtipo actual
+            id: { [Op.ne]: data.id },
           },
           required: false,
         },
@@ -561,7 +580,8 @@ const actualizarSubtipoController = async (data) => {
 
     camposActualizables.forEach((campo) => {
       if (data[campo] !== undefined) {
-        subtipo[campo] = data[campo];
+        subtipo[campo] =
+          campo === "precio" ? parseFloat(data[campo]) : data[campo];
       }
     });
 
@@ -570,7 +590,13 @@ const actualizarSubtipoController = async (data) => {
     // Si cambió la cantidad, actualizar cantidad_real de la entrada
     if (data.cantidad_disponible !== undefined) {
       const diferencia = parseInt(data.cantidad_disponible) - cantidadAnterior;
-      entrada.cantidad_real -= diferencia;
+      entrada.cantidad_real =
+        entrada.cantidad_total -
+        (entrada.subtipos?.reduce(
+          (total, s) => total + s.cantidad_disponible,
+          0
+        ) || 0) -
+        parseInt(data.cantidad_disponible);
       await entrada.save();
     }
 
@@ -601,7 +627,7 @@ const obtenerEntradaByIdController = async (id) => {
           model: SubtipoEntrada,
           as: "subtipos",
           required: false,
-          where: { estatus: ["activo", "agotado"] }, // Solo subtipos activos
+          where: { estatus: ["activo", "agotado"] },
         },
       ],
     });
@@ -615,7 +641,10 @@ const obtenerEntradaByIdController = async (id) => {
 
     return {
       success: true,
-      data: result,
+      data: {
+        ...result.toJSON(),
+        precio: parseFloat(result.precio),
+      },
     };
   } catch (error) {
     return {
@@ -649,8 +678,20 @@ const deleteSubtipoController = async (subtipoId) => {
       };
     }
 
-    // Obtener la entrada padre para actualizar cantidad_real
-    const entrada = await Entrada.findByPk(subtipo.EntradaId);
+    // Obtener la entrada padre con todos los subtipos activos (excluyendo el que se va a eliminar)
+    const entrada = await Entrada.findByPk(subtipo.EntradaId, {
+      include: [
+        {
+          model: SubtipoEntrada,
+          as: "subtipos",
+          where: {
+            estatus: ["activo", "agotado"],
+            id: { [Op.ne]: subtipoId },
+          },
+          required: false,
+        },
+      ],
+    });
 
     if (!entrada) {
       throw new Error("No se encontró la entrada asociada al subtipo");
@@ -661,8 +702,14 @@ const deleteSubtipoController = async (subtipoId) => {
       where: { id: subtipoId },
     });
 
-    // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real += subtipo.cantidad_disponible;
+    // Calcular la nueva cantidad_real
+    const totalSubtiposRestantes =
+      entrada.subtipos?.reduce(
+        (total, s) => total + s.cantidad_disponible,
+        0
+      ) || 0;
+
+    entrada.cantidad_real = entrada.cantidad_total - totalSubtiposRestantes;
     await entrada.save();
 
     return {

@@ -11,10 +11,12 @@ const {
 } = require("../Handlers/EventoHandler");
 
 const {
-  createContratoHandler, eliminarContratoHandler, 
-  obtenerContratoHandler, actContratoHandler,
-  obtenerTodosContratoHandler
-} = require('../Handlers/ContratoHandler')
+  createContratoHandler,
+  eliminarContratoHandler,
+  obtenerContratoHandler,
+  actContratoHandler,
+  obtenerTodosContratoHandler,
+} = require("../Handlers/ContratoHandler");
 
 const routeEvento = Router();
 
@@ -51,10 +53,10 @@ routeEvento.post("/esalon", addSalonEventoHandler);
 // Remove a salon from an event
 routeEvento.delete("/esalon/:eventoId/:salonId", deleteSalonEventoHandler);
 
-routeEvento.post("/:id/contrato", createContratoHandler)
-routeEvento.get ("/:id/contrato", obtenerContratoHandler);
-routeEvento.get ("/contratos", obtenerTodosContratoHandler);
-routeEvento.delete ("/:id/contrato/:id", eliminarContratoHandler);
-routeEvento.put("/:id/contrato/:id", actContratoHandler)
+routeEvento.post("/:id/contrato", createContratoHandler);
+routeEvento.get("/:id/contrato", obtenerContratoHandler);
+routeEvento.get("/contratos", obtenerTodosContratoHandler);
+routeEvento.delete("/:id/contrato/:id", eliminarContratoHandler);
+routeEvento.put("/:id/contrato/:id", actContratoHandler);
 
 module.exports = routeEvento;

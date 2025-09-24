@@ -134,6 +134,10 @@ Invitados.belongsTo(Users, { foreignKey: "userId" });
 Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
 Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
 
+// Invitados / Eventos
+Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
+Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
+
 //Users / Eventos
 Users.belongsToMany(Eventos, {
   through: "UsuariosEventos",

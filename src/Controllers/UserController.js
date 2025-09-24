@@ -6,47 +6,66 @@ const createUserController = async (data) => {
   try {
     console.log("Datos recibidos para crear usuario:", data);
 
-    // Verificar si el usuario ya existe solo por email para Auth0
-    const usuarioExistente = await Users.findOne({
-      where: { email: data.email },
-    });
+    let userData = {};
 
-    if (usuarioExistente) {
-      // Si ya existe pero tiene auth0Id diferente, podría ser un problema
-      if (
-        usuarioExistente.auth0Id &&
-        usuarioExistente.auth0Id !== data.auth0Id
-      ) {
+    if (data.rol === "graduado") {
+      // Solo guardar nombre, apellido y rol
+      userData = {
+        nombre: data.nombre || null,
+        apellido: data.apellido || null,
+        rol: "graduado",
+      };
+    } else {
+      // Verificar si el usuario ya existe por email
+      const usuarioExistentePorEmail = await Users.findOne({
+        where: { email: data.email },
+      });
+
+      if (usuarioExistentePorEmail) {
+        if (
+          usuarioExistentePorEmail.auth0Id &&
+          usuarioExistentePorEmail.auth0Id !== data.auth0Id
+        ) {
+          throw new Error(
+            `El email ${data.email} ya está registrado con otra cuenta Auth0`
+          );
+        }
+
+        if (usuarioExistentePorEmail.auth0Id === data.auth0Id) {
+          throw new Error(
+            `El usuario con email ${data.email} ya está registrado`
+          );
+        }
+
+        throw new Error(`Ya existe un usuario con el email ${data.email}`);
+      }
+
+      // Verificar si el usuario ya existe por nombre de usuario
+      const usuarioExistentePorUsuario = await Users.findOne({
+        where: { usuario: data.usuario },
+      });
+
+      if (usuarioExistentePorUsuario) {
         throw new Error(
-          `El email ${data.email} ya está registrado con otra cuenta Auth0`
+          `Ya existe un usuario con el nombre de usuario ${data.usuario}`
         );
       }
 
-      // Si es el mismo usuario de Auth0 intentando registrarse de nuevo
-      if (usuarioExistente.auth0Id === data.auth0Id) {
-        throw new Error(
-          `El usuario con email ${data.email} ya está registrado`
-        );
-      }
-
-      throw new Error(`Ya existe un usuario con el email ${data.email}`);
+      // Para usuarios Auth0 o normales
+      userData = {
+        auth0Id: data.auth0Id || null,
+        email: data.email || null,
+        nombre: data.nombre || null,
+        apellido: data.apellido || null,
+        rol: data.rol || "comun", // Asegurar rol predeterminado
+        isActive: true,
+        dni: data.dni || null,
+        direccion: data.direccion || null,
+        whatsapp: data.whatsapp || null,
+        usuario: data.usuario || null,
+        password: data.password || null,
+      };
     }
-
-    // Para usuarios Auth0, no requerimos todos los campos
-    const userData = {
-      auth0Id: data.auth0Id,
-      email: data.email,
-      nombre: data.nombre || null,
-      apellido: data.apellido || null,
-      rol: data.rol || "comun",
-      isActive: true,
-      // Los demás campos pueden ser null para usuarios Auth0
-      dni: data.dni || null,
-      direccion: data.direccion || null,
-      whatsapp: data.whatsapp || null,
-      usuario: data.usuario || null,
-      password: data.password || null,
-    };
 
     const user = await Users.create(userData);
 
@@ -55,11 +74,40 @@ const createUserController = async (data) => {
     return {
       success: true,
       message: "Usuario creado exitosamente",
-      user: user,
+      user,
     };
   } catch (error) {
     console.error("Error en createUserController:", error);
-    throw new Error(`${error.message}`);
+    if (error.name === "SequelizeUniqueConstraintError") {
+      if (error.fields?.usuario) {
+        throw new Error(`El nombre de usuario ${data.usuario} ya está en uso`);
+      }
+      if (error.fields?.email) {
+        throw new Error(`El email ${data.email} ya está registrado`);
+      }
+      if (error.fields?.dni) {
+        throw new Error(`El DNI ${data.dni} ya está registrado`);
+      }
+    }
+    throw new Error(`Error al crear el usuario: ${error.message}`);
+  }
+};
+
+const verificarUsuarioPorNombreController = async ({ usuario }) => {
+  try {
+    console.log("Verificando disponibilidad del nombre de usuario:", usuario);
+
+    const user = await Users.findOne({
+      where: { usuario },
+      attributes: ["id", "usuario"],
+    });
+
+    return { existe: !!user };
+  } catch (error) {
+    console.error("Error en verificarUsuarioPorNombreController:", error);
+    throw new Error(
+      `Error al verificar el nombre de usuario: ${error.message}`
+    );
   }
 };
 
@@ -93,7 +141,7 @@ const obtenerUserController = async (id) => {
       direccion: user.direccion || "",
       whatsapp: user.whatsapp || "",
       usuario: user.usuario || "",
-      rol: user.rol || "comun",
+      rol: user.rol, // Eliminamos el fallback a "comun"
       isActive: user.isActive !== undefined ? user.isActive : true,
       auth0Id: user.auth0Id || null,
     };
@@ -126,7 +174,7 @@ const obtenerUserGridController = async () => {
 
     return grid.map((user) => ({
       ...user,
-      rol: user.rol || "comun",
+      rol: user.rol, // Eliminamos el fallback a "comun"
     }));
   } catch (error) {
     console.error("Error en obtenerUserGridController:", error);
@@ -324,6 +372,7 @@ module.exports = {
   obtenerUserGridController,
   updateUserController,
   verificarUsuarioController,
+  verificarUsuarioPorNombreController,
   deleteUserController,
   softDeleteUserController,
   obtenerUsuariosController,

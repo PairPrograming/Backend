@@ -231,44 +231,50 @@ const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
 
 /* Graduados */
 
-const addUserToEventController = async(userId, eventoId) => {
-    try {
-        const user = await Users.findByPk(userId, {
-            include: [{
-                model: Rols,
-                attributes: ['rol']
-            }],
-            raw:true
-        });
-        const punto = await Eventos.findByPk(eventoId);
-        if (!user) {
-            throw new Error(`Usuario no encontrado`);
-        }
-        if (!user['Rol.rol'] || user['Rol.rol']?.toLowerCase() !== 'graduado') {
-            throw new Error(`El usuario debe tener el rol de graduado para ser asignado al evento`);
-        }
-        if (!punto) {
-            throw new Error(`Evento no encontrado`);
-        }
-        const [existingUserPunto, created] = await UsuariosEventos.findOrCreate({
-            where: { userId, eventoId },
-            defaults: { userId, eventoId }
-        });
-        if (!created) {
-            throw new Error('El graduado ya está asociado a este evento');
-        }
-
-        return { success: true, message: 'Graduado agregado al evento exitosamente' };
-
-    } catch (error) {
-        throw new Error(`Error al agregar el graduado al evento: ${error.message}`);
+const addUserToEventController = async (userId, eventoId) => {
+  try {
+    const user = await Users.findByPk(userId, {
+      include: [
+        {
+          model: Rols,
+          attributes: ["rol"],
+        },
+      ],
+      raw: true,
+    });
+    const punto = await Eventos.findByPk(eventoId);
+    if (!user) {
+      throw new Error(`Usuario no encontrado`);
     }
-}
+    if (!user["Rol.rol"] || user["Rol.rol"]?.toLowerCase() !== "graduado") {
+      throw new Error(
+        `El usuario debe tener el rol de graduado para ser asignado al evento`
+      );
+    }
+    if (!punto) {
+      throw new Error(`Evento no encontrado`);
+    }
+    const [existingUserPunto, created] = await UsuariosEventos.findOrCreate({
+      where: { userId, eventoId },
+      defaults: { userId, eventoId },
+    });
+    if (!created) {
+      throw new Error("El graduado ya está asociado a este evento");
+    }
+
+    return {
+      success: true,
+      message: "Graduado agregado al evento exitosamente",
+    };
+  } catch (error) {
+    throw new Error(`Error al agregar el graduado al evento: ${error.message}`);
+  }
+};
 
 const removeUserFromEventController = async (userId, eventoId) => {
   try {
     const user = await Users.findByPk(userId, {
-      include: [{ model: Rols, attributes: ['rol'] }],
+      include: [{ model: Rols, attributes: ["rol"] }],
     });
     if (!user) {
       throw new Error(`Usuario no encontrado`);
@@ -291,12 +297,13 @@ const removeUserFromEventController = async (userId, eventoId) => {
 
     return {
       success: true,
-      message: 'Usuario eliminado del evento exitosamente',
+      message: "Usuario eliminado del evento exitosamente",
       data: { userId, eventoId },
     };
-
   } catch (error) {
-    throw new Error(`Error al eliminar el usuario del evento: ${error.message}`);
+    throw new Error(
+      `Error al eliminar el usuario del evento: ${error.message}`
+    );
   }
 };
 
@@ -307,13 +314,13 @@ const getUsersByEventController = async (eventoId) => {
         {
           model: Users,
           attributes: ["id", "nombre", "apellido", "dni", "email", "rol"],
-          through: { attributes: [] },/*
+          through: { attributes: [] } /*
           include: [
             {
               model: Rols,
               attributes: ["rol"],
             },
-          ],*/
+          ],*/,
         },
       ],
     });
@@ -333,7 +340,6 @@ const getUsersByEventController = async (eventoId) => {
     );
   }
 };
-
 
 module.exports = {
   addEventoController,

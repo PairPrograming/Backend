@@ -6,6 +6,7 @@ const {
   obtenerUserGridHandler,
   updateUserHandler,
   verificarUsuarioHandler,
+  verificarUsuarioPorNombreHandler,
   deleteUserHandler,
   softDeleteUserHandler,
   obtenerUsuariosHandler,
@@ -17,6 +18,7 @@ const routeUsers = Router();
 
 routeUsers.post("/register", createUserHandler);
 routeUsers.post("/create-user", crearUsuarioAdminHandler);
+routeUsers.post("/verificar-usuario", verificarUsuarioPorNombreHandler);
 routeUsers.get("/perfil/:id", obtenerUserHandler);
 routeUsers.get("/grid", obtenerUserGridHandler);
 routeUsers.put("/perfil/:id", updateUserHandler);
