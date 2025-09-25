@@ -36,9 +36,9 @@ const createUserHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      rol: rol || "comun", // Asegurar rol predeterminado
+      rol: rol || "comun",
     };
-    await createUserController(userData);
+    const result = await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -70,10 +70,13 @@ const crearUsuarioAdminHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      rol: rol || "comun", // Asegurar rol predeterminado
+      rol: rol || "comun",
     };
-    await createUserController(userData);
-    return res.status(201).json({ message: "Usuario creado por admin" });
+    const result = await createUserController(userData);
+    return res.status(201).json({
+      message: "Usuario creado por admin",
+      ...result, // incluye success, message, user con id
+    });
   } catch (error) {
     return res.status(400).json({ message: error.message });
   }

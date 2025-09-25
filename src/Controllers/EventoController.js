@@ -1,4 +1,4 @@
-const { Salones, Eventos, SalonesEventos, Users } = require("../DbIndex");
+const { Salones, Eventos, SalonesEventos, Users, UsuariosEventos } = require("../DbIndex");
 const { Op } = require("sequelize");
 
 // Common attributes for reuse
@@ -231,26 +231,19 @@ const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
 
 /* Graduados */
 
-const addUserToEventController = async (userId, eventoId) => {
+const addUserToEventController = async ({userId, eventoId}) => {
+  
   try {
-    const user = await Users.findByPk(userId, {
-      include: [
-        {
-          model: Rols,
-          attributes: ["rol"],
-        },
-      ],
-      raw: true,
-    });
-    const punto = await Eventos.findByPk(eventoId);
+    const user = await Users.findByPk(userId);
     if (!user) {
       throw new Error(`Usuario no encontrado`);
     }
-    if (!user["Rol.rol"] || user["Rol.rol"]?.toLowerCase() !== "graduado") {
+    if (!user.rol || user.rol.toLowerCase() !== "graduado") {
       throw new Error(
         `El usuario debe tener el rol de graduado para ser asignado al evento`
       );
     }
+    const punto = await Eventos.findByPk(eventoId);
     if (!punto) {
       throw new Error(`Evento no encontrado`);
     }

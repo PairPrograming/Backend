@@ -40,15 +40,17 @@ const createUserController = async (data) => {
         throw new Error(`Ya existe un usuario con el email ${data.email}`);
       }
 
-      // Verificar si el usuario ya existe por nombre de usuario
-      const usuarioExistentePorUsuario = await Users.findOne({
-        where: { usuario: data.usuario },
-      });
+      // Verificar si el usuario ya existe por nombre de usuario, solo si usuario está definido
+      if (data.usuario) {
+        const usuarioExistentePorUsuario = await Users.findOne({
+          where: { usuario: data.usuario },
+        });
 
-      if (usuarioExistentePorUsuario) {
-        throw new Error(
-          `Ya existe un usuario con el nombre de usuario ${data.usuario}`
-        );
+        if (usuarioExistentePorUsuario) {
+          throw new Error(
+            `Ya existe un usuario con el nombre de usuario ${data.usuario}`
+          );
+        }
       }
 
       // Para usuarios Auth0 o normales
@@ -57,7 +59,7 @@ const createUserController = async (data) => {
         email: data.email || null,
         nombre: data.nombre || null,
         apellido: data.apellido || null,
-        rol: data.rol || "comun", // Asegurar rol predeterminado
+        rol: data.rol || "comun",
         isActive: true,
         dni: data.dni || null,
         direccion: data.direccion || null,
@@ -67,6 +69,7 @@ const createUserController = async (data) => {
       };
     }
 
+    console.log("Datos finales para crear usuario:", userData);
     const user = await Users.create(userData);
 
     console.log("Usuario creado exitosamente:", user.id);
@@ -74,7 +77,7 @@ const createUserController = async (data) => {
     return {
       success: true,
       message: "Usuario creado exitosamente",
-      user,
+      user: user.get({ plain: true }),
     };
   } catch (error) {
     console.error("Error en createUserController:", error);
@@ -89,7 +92,11 @@ const createUserController = async (data) => {
         throw new Error(`El DNI ${data.dni} ya está registrado`);
       }
     }
-    throw new Error(`Error al crear el usuario: ${error.message}`);
+    throw new Error(
+      `Error al crear el usuario: ${error.message} (Datos: ${JSON.stringify(
+        data
+      )})`
+    );
   }
 };
 
@@ -141,7 +148,7 @@ const obtenerUserController = async (id) => {
       direccion: user.direccion || "",
       whatsapp: user.whatsapp || "",
       usuario: user.usuario || "",
-      rol: user.rol, // Eliminamos el fallback a "comun"
+      rol: user.rol,
       isActive: user.isActive !== undefined ? user.isActive : true,
       auth0Id: user.auth0Id || null,
     };
@@ -174,7 +181,7 @@ const obtenerUserGridController = async () => {
 
     return grid.map((user) => ({
       ...user,
-      rol: user.rol, // Eliminamos el fallback a "comun"
+      rol: user.rol,
     }));
   } catch (error) {
     console.error("Error en obtenerUserGridController:", error);
