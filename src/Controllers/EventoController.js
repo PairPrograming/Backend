@@ -232,7 +232,7 @@ const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
 /* Graduados */
 
 const addUserToEventController = async ({userId, eventoId}) => {
-  console.log("addUserToEventController called with:", userId, eventoId);
+  
   try {
     const user = await Users.findByPk(userId);
     if (!user) {
