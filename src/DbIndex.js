@@ -71,6 +71,7 @@ const {
   Salones,
   Eventos,
   MetodoDePago,
+  NotaDebito,
   Punto_de_venta,
   Tickets,
   Image,
@@ -151,10 +152,16 @@ Eventos.belongsToMany(Users, {
   otherKey: "userId",
 });
 
+NotaDebito.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
+MetodoDePago.hasMany(NotaDebito, { foreignKey: "metodoDeCobroId" });
+
+NotaDebito.belongsTo(Pago, { foreignKey: "pagoId" });
+Pago.hasMany(NotaDebito, { foreignKey: "pagoId" });
 
 // Pago / Orden y Detalle / Metodo de pago / Entradas 
 Pago.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
 MetodoDePago.hasMany(Pago, { foreignKey: "metodoDeCobroId" });
+
 
 Orden.hasMany(Pago, { foreignKey: "ordenId" });
 Pago.belongsTo(Orden, { foreignKey: "ordenId" });
