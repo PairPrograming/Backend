@@ -1,4 +1,4 @@
-const { Pago, Orden, DetalleDeOrden, Entrada, MetodoDePago, SubtipoEntrada, NotaDebito, Evento, conn } = require("../DbIndex");
+const { Pago, Orden, DetalleDeOrden, Entrada, MetodoDePago, SubtipoEntrada, NotaDebito, Eventos, conn } = require("../DbIndex");
 const { Op } = require('sequelize');
 
 const crearNotaDebitoController = async (data) => {
