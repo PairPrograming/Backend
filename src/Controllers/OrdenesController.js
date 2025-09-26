@@ -23,7 +23,6 @@ const crearOrdenConDetalles = async (data) => {
     email_cliente,
     telefono_cliente,
   } = data;
-  
   if (!detalles || detalles.length === 0) {
     return { success: false, message: "Debe incluir al menos un detalle" };
   }
