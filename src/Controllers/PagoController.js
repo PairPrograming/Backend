@@ -1,4 +1,4 @@
-const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada,SubtipoEntrada, conn } = require("../DbIndex");
+const { Pago, MetodoDePago, Orden, DetalleDeOrden, Entrada, SubtipoEntrada, conn } = require("../DbIndex");
 const { Op } = require('sequelize');
 const crearPagoController = async (data) => {
   const {
@@ -233,34 +233,28 @@ const crearPagoController = async (data) => {
 
           await subtipo.save({ transaction: t })
 
-          // Actualizar entrada padre si existe - CORREGIDO
-          if (subtipo.entrada) {
-            // CORREGIDO: Usar cantidad_real en lugar de cantidad
-            subtipo.entrada.cantidad_real -= detalle.cantidad
-
-            if (subtipo.entrada.cantidad_real <= 0) {
-              subtipo.entrada.estatus = "agotado"
-              subtipo.entrada.cantidad_real = 0 // Evitar negativos
-            }
-
-            await subtipo.entrada.save({ transaction: t })
+          if (subtipo.cantidad_disponible <= 0) {
+            subtipo.estatus = "agotado";
+            subtipo.cantidad_disponible = 0;
           }
+
+          await subtipo.save({ transaction: t });
         }
       }
       // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId) {
-        const entrada = detalle.Entrada || (await Entrada.findByPk(detalle.entradaId, { transaction: t }))
+        const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
 
         if (entrada) {
-          // CORREGIDO: Usar cantidad_real en lugar de cantidad
-          entrada.cantidad_real -= detalle.cantidad
+          // Solo aquí se actualiza cantidad_real
+          entrada.cantidad_real -= detalle.cantidad;
 
           if (entrada.cantidad_real <= 0) {
-            entrada.estatus = "agotado"
-            entrada.cantidad_real = 0 // Evitar negativos
+            entrada.estatus = "agotado";
+            entrada.cantidad_real = 0;
           }
 
-          await entrada.save({ transaction: t })
+          await entrada.save({ transaction: t });
         }
       }
     }
@@ -310,7 +304,7 @@ const crearPagoController = async (data) => {
 
 const cancelarPagoController = async (pagoId, motivo) => {
   const t = await conn.transaction();
-  
+
   try {
     const pago = await Pago.findByPk(pagoId, {
       include: [
@@ -321,8 +315,8 @@ const cancelarPagoController = async (pagoId, motivo) => {
               model: DetalleDeOrden,
               include: [
                 { model: Entrada, required: false },
-                { 
-                  model: SubtipoEntrada, 
+                {
+                  model: SubtipoEntrada,
                   required: false,
                   include: [{ model: Entrada, as: 'entrada', required: false }]
                 }
@@ -352,34 +346,34 @@ const cancelarPagoController = async (pagoId, motivo) => {
           include: [{ model: Entrada, as: 'entrada' }],
           transaction: t
         });
-        
+
         if (subtipo) {
           // Restaurar stock del subtipo
           subtipo.cantidad_disponible += detalle.cantidad;
           subtipo.cantidad_vendida -= detalle.cantidad;
-          
+
           // Prevenir que cantidad_vendida sea negativa
           if (subtipo.cantidad_vendida < 0) {
             subtipo.cantidad_vendida = 0;
           }
-          
+
           // Cambiar estatus si ya no está agotado
           if (subtipo.estatus === 'agotado' && subtipo.cantidad_disponible > 0) {
             subtipo.estatus = 'activo';
           }
-          
+
           await subtipo.save({ transaction: t });
 
           // Restaurar entrada padre si existe - CORREGIDO
           if (subtipo.entrada) {
             // CORREGIDO: Usar cantidad_real en lugar de cantidad
             subtipo.entrada.cantidad_real += detalle.cantidad;
-            
+
             // CORREGIDO: Validar contra cantidad_real
             if (subtipo.entrada.estatus === 'agotado' && subtipo.entrada.cantidad_real > 0) {
               subtipo.entrada.estatus = 'disponible';
             }
-            
+
             await subtipo.entrada.save({ transaction: t });
           }
         }
@@ -387,16 +381,16 @@ const cancelarPagoController = async (pagoId, motivo) => {
       // Caso 2: Entrada directa (sin subtipos) - CORREGIDO
       else if (detalle.entradaId) {
         const entrada = detalle.Entrada || await Entrada.findByPk(detalle.entradaId, { transaction: t });
-        
+
         if (entrada) {
           // CORREGIDO: Usar cantidad_real en lugar de cantidad
           entrada.cantidad_real += detalle.cantidad;
-          
+
           // CORREGIDO: Validar contra cantidad_real
           if (entrada.estatus === 'agotado' && entrada.cantidad_real > 0) {
             entrada.estatus = 'disponible';
           }
-          
+
           await entrada.save({ transaction: t });
         }
       }
@@ -415,9 +409,9 @@ const cancelarPagoController = async (pagoId, motivo) => {
     await pago.Orden.save({ transaction: t });
 
     await t.commit();
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       message: "Pago cancelado exitosamente. El stock ha sido restaurado.",
       data: {
         pagoId: pago.id,
@@ -430,50 +424,50 @@ const cancelarPagoController = async (pagoId, motivo) => {
     if (!t.finished) {
       await t.rollback();
     }
-    return { 
-      success: false, 
-      message: `Error al cancelar pago: ${error.message}` 
+    return {
+      success: false,
+      message: `Error al cancelar pago: ${error.message}`
     };
   }
 };
 
 const getGridPagosController = async (filtros = {}) => {
   try {
-    const { 
-      estado, 
-      fechaDesde, 
-      fechaHasta, 
+    const {
+      estado,
+      fechaDesde,
+      fechaHasta,
       evento,
       cuotas,
       metodoDePago,
-      limit = 50, 
+      limit = 50,
       offset = 0,
       orderBy = 'id',
       orderDirection = 'DESC'
     } = filtros;
 
     const condiciones = {};
-    
+
     if (estado) {
       condiciones.estatus = {
         [Op.like]: `%${estado}%`
       };
     }
-    
+
     if (fechaDesde || fechaHasta) {
       condiciones.createdAt = {};
-      
+
       if (fechaDesde) {
         condiciones.createdAt[Op.gte] = new Date(fechaDesde);
       }
-      
+
       if (fechaHasta) {
         const fechaFin = new Date(fechaHasta);
         fechaFin.setHours(23, 59, 59, 999);
         condiciones.createdAt[Op.lte] = fechaFin;
       }
     }
-    
+
     if (evento) {
       condiciones.eventoNombre = {
         [Op.like]: `%${evento}%`
@@ -491,42 +485,42 @@ const getGridPagosController = async (filtros = {}) => {
         condiciones.cuotas = parseInt(cuotas);
       }
     }
-        const includeArray = [];
-    
-        if (metodoDePago) {
-          includeArray.push({
-            model: MetodoDePago,
-            where: {
-              [Op.or]: [
-                { id: metodoDePago },
-                { 
-                  nombre: {
-                    [Op.iLike]: `%${metodoDePago}%`
-                  }
-                }
-              ]
-            },
-            required: true 
-          });
-        } else {
-          includeArray.push({
-            model: MetodoDePago,
-            required: false
-          });
-        }
-    
+    const includeArray = [];
+
+    if (metodoDePago) {
+      includeArray.push({
+        model: MetodoDePago,
+        where: {
+          [Op.or]: [
+            { id: metodoDePago },
+            {
+              nombre: {
+                [Op.iLike]: `%${metodoDePago}%`
+              }
+            }
+          ]
+        },
+        required: true
+      });
+    } else {
+      includeArray.push({
+        model: MetodoDePago,
+        required: false
+      });
+    }
+
     const allowedFields = ['id', 'monto', 'estatus', 'fechaCreacion', 'eventoNombre', "metodoDePago"];
     const allowedDirections = ['ASC', 'DESC'];
-    
+
     const sortField = allowedFields.includes(orderBy) ? orderBy : 'id';
-    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase()) ? 
+    const sortDirection = allowedDirections.includes(orderDirection?.toUpperCase()) ?
       orderDirection.toUpperCase() : 'DESC';
-    
-    const safeLimit = Number.isInteger(parseInt(limit)) && parseInt(limit) > 0 ? 
+
+    const safeLimit = Number.isInteger(parseInt(limit)) && parseInt(limit) > 0 ?
       parseInt(limit) : 50;
-    const safeOffset = Number.isInteger(parseInt(offset)) && parseInt(offset) >= 0 ? 
+    const safeOffset = Number.isInteger(parseInt(offset)) && parseInt(offset) >= 0 ?
       parseInt(offset) : 0;
-    
+
     const result = await Pago.findAll({
       where: condiciones,
       include: includeArray,
@@ -535,14 +529,14 @@ const getGridPagosController = async (filtros = {}) => {
       offset: safeOffset
     });
 
-    const total = await Pago.count({ 
+    const total = await Pago.count({
       where: condiciones,
       include: includeArray,
       distinct: true
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: result,
       pagination: {
         total,
@@ -567,7 +561,12 @@ const obtenerPagoController = async (pagoId) => {
           include: [
             {
               model: DetalleDeOrden,
-              include: [{ model: Entrada }]
+              include: [
+                { 
+                    model: Entrada,
+                    include: [{ model: SubtipoEntrada, as: 'subtipos'}]
+                 }
+            ]
             }
           ]
         },
@@ -585,7 +584,7 @@ const obtenerPagoController = async (pagoId) => {
   }
 };
 
-module.exports = { 
+module.exports = {
   crearPagoController,
   obtenerPagoController,
   cancelarPagoController,

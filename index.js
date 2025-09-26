@@ -12,7 +12,7 @@ conn
   .authenticate()
   .then(() => {
     console.log("Conexión a la base de datos establecida");
-    return conn.sync({ force: false });
+    return conn.sync({ alter: true });
   })
   .then(() => {
     app.listen(PORT, () => {

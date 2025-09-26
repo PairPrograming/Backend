@@ -12,6 +12,7 @@ const routeEntrada = require("./routeEntrada");
 const routeOrden = require('./routeOrden')
 const routePaymentMethod = require('./routePaymentMethod')
 const routeContrato = require("./routeContrato")
+const routeNota = require("./routeNotaDebito")
 
 router.use("/api/users/role", routeRoles);
 router.use("/api/users", routeUsers);
@@ -25,5 +26,6 @@ router.use("/api/entrada/", routeEntrada);
 router.use("/api/order", routeOrden);
 router.use("/api/paymentMethod", routePaymentMethod);
 router.use("/api/contrato", routeContrato);
+router.use("/api/nota", routeNota);
 
 module.exports = router;
