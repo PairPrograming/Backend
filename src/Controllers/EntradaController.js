@@ -41,9 +41,11 @@ const agregarEntradasController = async (data) => {
       }
     } else {
       // Si NO tiene subtipos, el precio de la entrada principal es obligatorio y debe ser mayor a cero
-      if (data.precio === undefined || parseFloat(data.precio) <= 0) {
-        throw new Error("El precio debe ser mayor que cero si no hay subtipos");
-      }
+const precioNum = parseFloat(data.precio);
+
+if (!data.precio || isNaN(precioNum) || precioNum <= 0) {
+  throw new Error("El precio debe ser un número válido y mayor que cero si no hay subtipos");
+}
     }
 
     // Obtener evento y su capacidad
