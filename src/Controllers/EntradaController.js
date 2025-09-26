@@ -485,7 +485,7 @@ const agregarSubtipoController = async (data) => {
     });
 
     // Actualizar cantidad_real de la entrada
-    entrada.cantidad_real = entrada.cantidad_total - nuevaCantidadTotal;
+    entrada.cantidad_real = entrada.cantidad_total - totalSubtiposActuales - parseInt(data.cantidad_disponible);
     await entrada.save();
     return {
       success: true,
