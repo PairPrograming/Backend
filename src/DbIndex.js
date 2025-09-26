@@ -155,6 +155,9 @@ Eventos.belongsToMany(Users, {
 NotaDebito.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
 MetodoDePago.hasMany(NotaDebito, { foreignKey: "metodoDeCobroId" });
 
+NotaDebito.belongsTo(Orden, { foreignKey: "ordenId" });
+Orden.hasMany(NotaDebito, { foreignKey: "ordenId" });
+
 NotaDebito.belongsTo(Pago, { foreignKey: "pagoId" });
 Pago.hasOne(NotaDebito, { foreignKey: "pagoId" });
 
