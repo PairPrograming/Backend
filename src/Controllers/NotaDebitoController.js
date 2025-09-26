@@ -14,11 +14,9 @@ const crearNotaDebitoController = async (data) => {
             throw new Error(`El campo cambios es requerido y debe ser un array no vacío`);
         }
 
-        // Validar existencia del pago
         const pago = await Pago.findByPk(pagoId, { transaction: t });
         if (!pago) throw new Error('Pago no encontrado');
 
-        // Validar existencia de la orden con sus detalles
         const orden = await Orden.findByPk(ordenId, {
             include: {
                 model: DetalleDeOrden,
@@ -26,18 +24,33 @@ const crearNotaDebitoController = async (data) => {
             },
             transaction: t
         });
+
         if (!orden) throw new Error('Orden no encontrada');
 
-        // Validar estados
         if (pago.estatus !== "completado" || orden.estado !== "pagado") {
             throw new Error(`Error: los estados deben ser 'pagado' en orden y 'completado' en pagos`);
         }
+        const notaExistente = await NotaDebito.findOne({
+            include: {
+                model: Pago,
+                where: {
+                    id: pagoId,
+                    ordenId: ordenId
+                }
+            },
+            where: {
+                status: true
+            },
+            transaction: t
+        });
 
+        if (notaExistente) {
+            throw new Error(`Ya existe una nota de débito para la orden ${ordenId} y pago ${pagoId}`);
+        }
         let detalleNota = [];
         let totalAgregar = 0;
         let totalQuitar = 0;
 
-        // Procesar cada cambio
         for (const cambio of cambios) {
             const { entradaId, quitar, agregar } = cambio;
 
@@ -45,7 +58,6 @@ const crearNotaDebitoController = async (data) => {
                 throw new Error('El campo entradaId es requerido en cada cambio');
             }
 
-            // Buscar el detalle de orden correspondiente
             const detalle = orden.DetalleDeOrdens.find(d => d.entradaId === entradaId);
             if (!detalle) {
                 throw new Error(`No se encontró detalle de orden para entradaId: ${entradaId}`);
@@ -55,7 +67,6 @@ const crearNotaDebitoController = async (data) => {
                 ? (Array.isArray(detalle.SubtipoEntrada) ? detalle.SubtipoEntrada : [detalle.SubtipoEntrada])
                 : [];
 
-            // Procesar elementos a quitar
             if (quitar && Array.isArray(quitar) && quitar.length > 0) {
                 for (const q of quitar) {
                     const { subtipoId, cantidad, precio_unitario } = q;
@@ -63,18 +74,23 @@ const crearNotaDebitoController = async (data) => {
                     if (!subtipoId || !cantidad || cantidad <= 0 || !precio_unitario) {
                         throw new Error('Los campos subtipoId, cantidad y precio_unitario son requeridos para quitar');
                     }
+                    const detalleComprado = orden.DetalleDeOrdens.find(d =>
+                        d.entradaId === entradaId && d.subtipoEntradaId === subtipoId
+                    );
 
-                    // Buscar el subtipo en la base de datos para validar cantidad vendida
+                    if (!detalleComprado) {
+                        throw new Error(`El subtipo ${subtipoId} no fue comprado en esta orden para la entrada ${entradaId}`);
+                    }
+
+                    if (cantidad > detalleComprado.cantidad) {
+                        throw new Error(`No se puede quitar ${cantidad} unidades del subtipo ${subtipoId}. Solo se compraron ${detalleComprado.cantidad} unidades en esta orden`);
+                    }
+
                     const subtipoEnBD = await SubtipoEntrada.findByPk(subtipoId, { transaction: t });
                     if (!subtipoEnBD) {
                         throw new Error(`Subtipo ${subtipoId} no encontrado en la base de datos`);
                     }
 
-                    if (subtipoEnBD.cantidad_vendida < cantidad) {
-                        throw new Error(`Cantidad a quitar (${cantidad}) es mayor a la cantidad vendida (${subtipoEnBD.cantidad_vendida}) en subtipo ${subtipoId}`);
-                    }
-
-                    // Actualizar inventario: devolver al disponible y quitar del vendido
                     await SubtipoEntrada.increment(
                         {
                             cantidad_disponible: cantidad,
@@ -91,8 +107,6 @@ const crearNotaDebitoController = async (data) => {
                     totalQuitar += precio_unitario * cantidad;
                 }
             }
-
-            // Procesar elementos a agregar
             if (agregar && Array.isArray(agregar) && agregar.length > 0) {
                 for (const a of agregar) {
                     const { subtipoId, cantidad, precio_unitario } = a;
@@ -101,7 +115,6 @@ const crearNotaDebitoController = async (data) => {
                         throw new Error('Los campos subtipoId, cantidad y precio_unitario son requeridos para agregar');
                     }
 
-                    // Validar existencia del subtipo y disponibilidad
                     const subtipoEnBD = await SubtipoEntrada.findByPk(subtipoId, { transaction: t });
                     if (!subtipoEnBD) {
                         throw new Error(`Subtipo ${subtipoId} no encontrado en la base de datos`);
@@ -111,7 +124,6 @@ const crearNotaDebitoController = async (data) => {
                         throw new Error(`Cantidad a agregar (${cantidad}) es mayor a la cantidad disponible (${subtipoEnBD.cantidad_disponible}) en subtipo ${subtipoId}`);
                     }
 
-                    // Actualizar inventario: quitar del disponible y agregar al vendido
                     await SubtipoEntrada.increment(
                         {
                             cantidad_disponible: -cantidad,
@@ -128,13 +140,10 @@ const crearNotaDebitoController = async (data) => {
                 }
             }
         }
-
-        // Validar que haya al menos un cambio
         if (detalleNota.length === 0) {
             throw new Error('No se procesaron cambios válidos');
         }
 
-        // Validar que totalAgregar >= totalQuitar
         if (totalAgregar < totalQuitar) {
             throw new Error(
                 `No se puede generar la nota de débito: el valor a agregar ($${totalAgregar}) es menor que el valor a quitar ($${totalQuitar})`
@@ -143,7 +152,6 @@ const crearNotaDebitoController = async (data) => {
 
         const diferencia = totalAgregar - totalQuitar;
 
-        // Obtener método de cobro para calcular impuesto y comisión
         const metodo = await MetodoDePago.findByPk(metodoDeCobroId, { transaction: t });
         if (!metodo) throw new Error('Método de cobro no encontrado');
 
@@ -152,12 +160,11 @@ const crearNotaDebitoController = async (data) => {
         const comisionPercent = parseFloat(metodo.comision || 0);
         const comision = (diferencia * comisionPercent) / 100;
 
-        // Crear la nota de débito
         const nota = await NotaDebito.create({
             pagoId,
             cuotas,
             metodoDeCobroId,
-            numeroNota: Math.floor(Math.random() * 1000000), // Considerar usar un sistema más robusto para números únicos
+            numeroNota: Math.floor(Math.random() * 1000000),
             tipoNota: 'CAMBIO',
             concepto: 'Ajuste de subtipo de entrada',
             ValorNeto: diferencia,
@@ -168,32 +175,32 @@ const crearNotaDebitoController = async (data) => {
             status: true
         }, { transaction: t });
 
-    await t.commit();
+        await t.commit();
 
-    return {
-        success: true,
-        data: {
-            ...nota.toJSON(),
-            resumen: {
-                totalAgregar,
-                totalQuitar,
-                diferencia,
-                valorImpuesto,
-                comision,
-                valorTotal: diferencia + valorImpuesto + comision
+        return {
+            success: true,
+            data: {
+                ...nota.toJSON(),
+                resumen: {
+                    totalAgregar,
+                    totalQuitar,
+                    diferencia,
+                    valorImpuesto,
+                    comision,
+                    valorTotal: diferencia + valorImpuesto + comision
+                }
             }
-        }
-    };
+        };
 
-} catch (error) {
-    await t.rollback();
-    console.error('Error en crearNotaDebitoController:', error);
-    return {
-        success: false,
-        message: error.message,
-        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    };
-}
+    } catch (error) {
+        await t.rollback();
+        console.error('Error en crearNotaDebitoController:', error);
+        return {
+            success: false,
+            message: error.message,
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        };
+    }
 };
 
 const obtenerNotaDebitoIdController = async (notaId) => {

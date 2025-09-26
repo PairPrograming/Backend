@@ -156,7 +156,7 @@ NotaDebito.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
 MetodoDePago.hasMany(NotaDebito, { foreignKey: "metodoDeCobroId" });
 
 NotaDebito.belongsTo(Pago, { foreignKey: "pagoId" });
-Pago.hasMany(NotaDebito, { foreignKey: "pagoId" });
+Pago.hasOne(NotaDebito, { foreignKey: "pagoId" });
 
 // Pago / Orden y Detalle / Metodo de pago / Entradas 
 Pago.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
