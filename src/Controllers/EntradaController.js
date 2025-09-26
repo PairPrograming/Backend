@@ -41,11 +41,11 @@ const agregarEntradasController = async (data) => {
       }
     } else {
       // Si NO tiene subtipos, el precio de la entrada principal es obligatorio y debe ser mayor a cero
-const precioNum = parseFloat(data.precio);
+      const precioNum = parseFloat(data.precio);
 
-if (!data.precio || isNaN(precioNum) || precioNum <= 0) {
-  throw new Error("El precio debe ser un número válido y mayor que cero si no hay subtipos");
-}
+      if (!data.precio || isNaN(precioNum) || precioNum <= 0) {
+        throw new Error("El precio debe ser un número válido y mayor que cero si no hay subtipos");
+      }
     }
 
     // Obtener evento y su capacidad
@@ -74,10 +74,8 @@ if (!data.precio || isNaN(precioNum) || precioNum <= 0) {
     // Validar que no se exceda la capacidad
     if (totalEntradasExistentes + data.cantidad_total > capacidad) {
       throw new Error(
-        `La cantidad total de entradas (${
-          totalEntradasExistentes + data.cantidad_total
-        }) excede la capacidad del evento (${capacidad}). Disponible: ${
-          capacidad - totalEntradasExistentes
+        `La cantidad total de entradas (${totalEntradasExistentes + data.cantidad_total
+        }) excede la capacidad del evento (${capacidad}). Disponible: ${capacidad - totalEntradasExistentes
         }`
       );
     }
@@ -348,8 +346,7 @@ const actualizarEntradaController = async (data) => {
 
       if (totalConNuevaEntrada > capacidadEvento) {
         throw new Error(
-          `El total de entradas del evento (${totalConNuevaEntrada}) excede la capacidad del evento (${capacidadEvento}). Disponible: ${
-            capacidadEvento - totalOtrasEntradas
+          `El total de entradas del evento (${totalConNuevaEntrada}) excede la capacidad del evento (${capacidadEvento}). Disponible: ${capacidadEvento - totalOtrasEntradas
           }`
         );
       }
@@ -462,24 +459,22 @@ const agregarSubtipoController = async (data) => {
     if (!entrada) {
       throw new Error("La entrada especificada no existe");
     }
-    
-if (entrada.precio != null) {
-  throw new Error("Si la entrada tiene precio no es posible agregar un subtipo");
-}
+
+    if (entrada.precio != null) {
+      throw new Error("Si la entrada tiene precio no es posible agregar un subtipo");
+    }
     // VALIDAR QUE NO SE EXCEDA LA CANTIDAD TOTAL
     const totalSubtiposActuales =
       entrada.subtipos?.reduce(
-        (total, subtipo) => total + subtipo.cantidad_disponible,
+        (total, subtipo) => total + subtipo.cantidad_disponible + subtipo.cantidad_vendida,
         0
       ) || 0;
-
     const nuevaCantidadTotal =
       totalSubtiposActuales + parseInt(data.cantidad_disponible);
-
+      console.log(nuevaCantidadTotal)
     if (nuevaCantidadTotal > entrada.cantidad_total) {
       throw new Error(
-        `No se puede agregar el subtipo. Cantidad disponible en entrada: ${
-          entrada.cantidad_total - totalSubtiposActuales
+        `No se puede agregar el subtipo. Cantidad disponible en entrada: ${entrada.cantidad_total - totalSubtiposActuales
         }, solicitada: ${data.cantidad_disponible}`
       );
     }
@@ -544,16 +539,12 @@ const actualizarSubtipoController = async (data) => {
           (total, s) => total + s.cantidad_disponible,
           0
         ) || 0;
-
       const nuevaCantidadTotal =
         totalOtrosSubtipos + parseInt(data.cantidad_disponible);
-
       if (nuevaCantidadTotal > entrada.cantidad_total) {
         throw new Error(
-          `No se puede actualizar. La suma de subtipos (${nuevaCantidadTotal}) excedería la cantidad total de la entrada (${
-            entrada.cantidad_total
-          }). Cantidad máxima permitida para este subtipo: ${
-            entrada.cantidad_total - totalOtrosSubtipos
+          `No se puede actualizar. La suma de subtipos (${nuevaCantidadTotal}) excedería la cantidad total de la entrada (${entrada.cantidad_total
+          }). Cantidad máxima permitida para este subtipo: ${entrada.cantidad_total - totalOtrosSubtipos
           }`
         );
       }
@@ -596,7 +587,7 @@ const actualizarSubtipoController = async (data) => {
       entrada.cantidad_real =
         entrada.cantidad_total -
         (entrada.subtipos?.reduce(
-          (total, s) => total + s.cantidad_disponible,
+          (total, s) => total + s.cantidad_disponible + s.cantidad_vendida,
           0
         ) || 0) -
         parseInt(data.cantidad_disponible);
