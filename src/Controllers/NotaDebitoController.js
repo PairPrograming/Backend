@@ -162,6 +162,7 @@ const crearNotaDebitoController = async (data) => {
 
         const nota = await NotaDebito.create({
             pagoId,
+ordenId,
             cuotas,
             metodoDeCobroId,
             numeroNota: Math.floor(Math.random() * 1000000),
