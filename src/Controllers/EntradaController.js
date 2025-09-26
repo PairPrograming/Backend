@@ -462,7 +462,10 @@ const agregarSubtipoController = async (data) => {
     if (!entrada) {
       throw new Error("La entrada especificada no existe");
     }
-
+    
+if (entrada.precio != null) {
+  throw new Error("Si la entrada tiene precio no es posible agregar un subtipo");
+}
     // VALIDAR QUE NO SE EXCEDA LA CANTIDAD TOTAL
     const totalSubtiposActuales =
       entrada.subtipos?.reduce(
