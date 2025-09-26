@@ -4,29 +4,23 @@ const { Op } = require("sequelize");
 const agregarEntradasController = async (data) => {
   try {
     // Validación básica
-    const validate = ["eventoId", "tipo_entrada", "cantidad_total", "precio"];
+    const validate = ["eventoId", "tipo_entrada", "cantidad_total"];
     for (const valid of validate) {
       if (!data[valid]) {
         throw new Error(`El campo ${valid} es requerido`);
       }
     }
 
-    if (parseFloat(data.precio) <= 0) {
-      throw new Error("El precio debe ser mayor que cero");
-    }
-
     // Validar subtipos solo si se proporcionan y no están vacíos
-    if (
-      data.subtipos &&
-      Array.isArray(data.subtipos) &&
-      data.subtipos.length > 0
-    ) {
+    let tieneSubtipos = data.subtipos && Array.isArray(data.subtipos) && data.subtipos.length > 0;
+
+    if (tieneSubtipos) {
       // Validar estructura de subtipos
       for (const subtipo of data.subtipos) {
         if (
           !subtipo.nombre ||
-          !subtipo.precio ||
-          !subtipo.cantidad_disponible
+          subtipo.precio === undefined ||
+          subtipo.cantidad_disponible === undefined
         ) {
           throw new Error(
             "Cada subtipo debe tener: nombre, precio y cantidad_disponible"
@@ -44,6 +38,11 @@ const agregarEntradasController = async (data) => {
         throw new Error(
           `La suma de cantidades de subtipos (${totalSubtipos}) no puede exceder la cantidad total (${data.cantidad_total})`
         );
+      }
+    } else {
+      // Si NO tiene subtipos, el precio de la entrada principal es obligatorio y debe ser mayor a cero
+      if (data.precio === undefined || parseFloat(data.precio) <= 0) {
+        throw new Error("El precio debe ser mayor que cero si no hay subtipos");
       }
     }
 
@@ -98,15 +97,13 @@ const agregarEntradasController = async (data) => {
 
     // Calcular cantidad_real según si tiene subtipos o no
     let cantidadReal;
-    if (data.subtipos && data.subtipos.length > 0) {
-      // Si tiene subtipos, cantidad_real es la diferencia
+    if (tieneSubtipos) {
       const totalSubtipos = data.subtipos.reduce(
         (total, subtipo) => total + parseInt(subtipo.cantidad_disponible),
         0
       );
       cantidadReal = data.cantidad_total - totalSubtipos;
     } else {
-      // Si no tiene subtipos, cantidad_real = cantidad_total
       cantidadReal = data.cantidad_total;
     }
 
@@ -114,7 +111,7 @@ const agregarEntradasController = async (data) => {
     const entrada = await Entrada.create({
       tipo_entrada: data.tipo_entrada,
       descripcion: data.descripcion || null,
-      precio: parseFloat(data.precio),
+      precio: tieneSubtipos ? null : parseFloat(data.precio),
       cantidad_total: data.cantidad_total,
       cantidad_real: cantidadReal,
       fecha_inicio_venta: data.fecha_inicio_venta || null,
@@ -127,7 +124,7 @@ const agregarEntradasController = async (data) => {
     let numSubtipos = 0;
 
     // Crear subtipos asociados solo si se proporcionaron
-    if (data.subtipos && data.subtipos.length > 0) {
+    if (tieneSubtipos) {
       const subtipesData = data.subtipos.map((subtipo, index) => ({
         nombre: subtipo.nombre,
         descripcion: subtipo.descripcion || null,
@@ -150,7 +147,7 @@ const agregarEntradasController = async (data) => {
     return {
       success: true,
       message:
-        data.subtipos && data.subtipos.length > 0
+        tieneSubtipos
           ? "Entrada y subtipos creados exitosamente"
           : "Entrada creada exitosamente",
       entradaId: entrada.id,
@@ -166,6 +163,7 @@ const agregarEntradasController = async (data) => {
     throw new Error(`${error.message}`);
   }
 };
+
 
 const obtenerEntradasController = async (eventoId) => {
   try {
