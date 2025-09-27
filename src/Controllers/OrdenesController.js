@@ -3,6 +3,7 @@ const {
   MetodoDePago,
   Pago,
   DetalleDeOrden,
+  NotaDebito,
   Entrada,
   Eventos,
   Salones,
@@ -122,6 +123,9 @@ const getOrdenesController = async (id) => {
               attributes: ["nombre", "email"], // Ajusta según los campos que quieras
             },
           ],
+          include:[{
+              model:NotaDebito
+            }]
         },
       ],
     });
@@ -168,6 +172,20 @@ const getOrdenesController = async (id) => {
       user: orden.User
         ? { nombre: orden.User.nombre, email: orden.User.email }
         : null,
+      notasDebito: orden.NotaDebitos ? orden.NotaDebitos.map(nota => ({
+        id: nota.id,
+        numeroNota: nota.numeroNota,
+        tipoNota: nota.tipoNota,
+        concepto: nota.concepto,
+        valorNeto: nota.ValorNeto,
+        cuotas: nota.cuotas,
+        valorImpuesto: nota.valorImpuesto,
+        comision: nota.comision,
+        valorTotal: nota.valorTotal,
+        fechaEmision: nota.fechaEmision,
+        detalle: nota.detalle,
+        status: nota.status
+      })) : [],
       detalles: detallesCompactados,
       salon,
     };
@@ -291,6 +309,25 @@ const getGridOrdenesController = async (filtros = {}) => {
           })())
         },
         required: !!(cuotas || metodoDePago)
+      },
+      // ✅ AGREGADO: Incluir NotaDebito
+      {
+        model: NotaDebito,
+        required: false, // LEFT JOIN para que traiga órdenes sin notas también
+        attributes: [
+          'id',
+          'numeroNota', 
+          'tipoNota',
+          'concepto',
+          'ValorNeto',
+          'cuotas',
+          'valorImpuesto',
+          'comision',
+          'valorTotal',
+          'fechaEmision',
+          'detalle',
+          'status'
+        ]
       }
     ];
 
