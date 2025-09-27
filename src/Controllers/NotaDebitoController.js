@@ -7,6 +7,8 @@ const crearNotaDebitoController = async (data) => {
         if (!data) throw new Error(`Error: Falta información`);
 
         const { pagoId, ordenId, metodoDeCobroId, cuotas, cambios } = data;
+        console.log("Datos recibidos para crear nota de débito:", data);
+        console.log("Validando datos...", ordenId);
         if (!pagoId) throw new Error(`El campo pagoId es requerido`);
         if (!ordenId) throw new Error(`El campo ordenId es requerido`);
         if (!metodoDeCobroId) throw new Error(`El campo metodoDeCobroId es requerido`);
@@ -162,7 +164,7 @@ const crearNotaDebitoController = async (data) => {
 
         const nota = await NotaDebito.create({
             pagoId,
-ordenId,
+            ordenId,
             cuotas,
             metodoDeCobroId,
             numeroNota: Math.floor(Math.random() * 1000000),
