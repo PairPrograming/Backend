@@ -1,4 +1,4 @@
-const { Pago, Orden, DetalleDeOrden, Entrada, MetodoDePago, SubtipoEntrada, NotaDebito, Eventos, conn } = require("../DbIndex");
+const { Pago, Orden, DetalleDeOrden, Entrada, MetodoDePago, SubtipoEntrada, NotaDebito,  conn } = require("../DbIndex");
 const { Op } = require('sequelize');
 
 const crearNotaDebitoController = async (data) => {
@@ -210,14 +210,93 @@ const obtenerNotaDebitoIdController = async (notaId) => {
             if (!notaId) throw new Error(`Id de la nota de debito faltante`);
         }
         const result = await NotaDebito.findByPk(notaId, {
-            include: [{ model: MetodoDePago }]
+            include: [{ 
+                model: MetodoDePago,
+                include:[{
+                    model: Pago,
+                    include:[{
+                        model:Orden,
+                        include:[{
+                            model:DetalleDeOrden
+                        }]
+                    }]
+                }]
+             }]
         })
         return { success: true, data: result }
     } catch (error) {
         return { success: false, message: error.message };
     }
 }
+
+const obtenerNotaDebitoController = async (filtros = {}) => {
+    try {
+        const {
+            estado,
+            fechaDesde,
+            fechaHasta,
+            cuotas,
+            metodoDePago,
+            limit = 50,
+            offset = 0,
+            orderBy = 'id',
+            orderDirection = 'DESC'
+        } = filtros;
+
+        const caso = {};
+        
+        if (estado !== undefined) {
+            caso.status = estado === 'activo' ? true : false;
+        }
+
+        if (fechaDesde && fechaHasta) {
+            caso.fechaEmision = {
+                [Op.between]: [fechaDesde, fechaHasta]
+            };
+        } else if (fechaDesde) {
+            caso.fechaEmision = {
+                [Op.gte]: fechaDesde
+            };
+        } else if (fechaHasta) {
+            caso.fechaEmision = {
+                [Op.lte]: fechaHasta
+            };
+        }
+        if (cuotas !== undefined) {
+            caso.cuotas = cuotas;
+        }
+
+        const camposPermitidos = ['id', 'numeroNota', 'fechaEmision', 'valorTotal', 'tipoNota'];
+        const orderField = camposPermitidos.includes(orderBy) ? orderBy : 'id';
+        const direction = ['ASC', 'DESC'].includes(orderDirection.toUpperCase()) 
+            ? orderDirection.toUpperCase() 
+            : 'DESC';
+
+        const data = await NotaDebito.findAll({
+            where: caso,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            order: [[orderField, direction]]
+        });
+
+        return { 
+            success: true, 
+            data: data,
+            total: data.length,
+            filtros: caso
+        };
+        
+    } catch (error) {
+        return { 
+            success: false, 
+            message: `Error al obtener notas de débito: ${error.message}` 
+        };
+    }
+};
+
+
 module.exports = {
     crearNotaDebitoController,
-    obtenerNotaDebitoIdController
+    obtenerNotaDebitoIdController,
+    obtenerNotaDebitoController
 }
