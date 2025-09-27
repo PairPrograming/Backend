@@ -42,13 +42,11 @@ const compareContratoController = async (data) => {
       return { success: false, message: "Evento no encontrado" };
     }
 
-    // Sumar ventas de subtipos
     let cantidadCenas_vendidas = 0;
     let cantidadBrindis_vendidas = 0;
     let flatData = [];
 
     for (const entrada of evento.Entradas) {
-      // Sumar ventas de subtipos
       if (entrada.subtipos && entrada.subtipos.length > 0) {
         flatData.push(
           ...entrada.subtipos.map(subtipo => ({
@@ -64,7 +62,6 @@ const compareContratoController = async (data) => {
           .filter(s => isBrindis(s.nombre))
           .reduce((sum, s) => sum + s.cantidad_vendida, 0);
       } else {
-        // Sumar ventas de la entrada principal si es "cena" o "brindis"
         flatData.push({
           subtipoNombre: entrada.tipo_entrada,
           cantidad_disponible: entrada.cantidad_real,
@@ -81,7 +78,8 @@ const compareContratoController = async (data) => {
 
     const contrato = await obtenerContratoController(eventoId);
     if (!contrato.success) {
-      return { success: false, message: "Error al obtener el contrato" };
+      // 👉 devolvemos el mensaje real del contrato controller
+      return { success: false, message: contrato.message };
     }
 
     const { minimoCenas, minimoBrindis } = contrato.data[0];
@@ -107,10 +105,7 @@ const compareContratoController = async (data) => {
     return {
       success: true,
       data: {
-        evento: {
-          id: evento.id,
-          // puedes mostrar otros datos si quieres
-        },
+        evento: { id: evento.id },
         subtipos: flatData,
         comparacion: {
           cenas: comparacionCenas,
