@@ -6,7 +6,7 @@ const genericHandler = (controller) => {
         switch (req.method) {
           case 'GET':
             // Para GET se puede usar params o query
-            data = req.params.id || req.query.id || req.query;
+            data = req.params.id || req.query.id || (Object.keys(req.query).length > 0 ? req.query : req.params);
             break;
           case 'POST':
             data = req.body;

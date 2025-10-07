@@ -7,7 +7,19 @@ const {
   deleteEventoFisicoController,
   addSalonEventoController,
   deleteSalonEventoController,
+  addUserToEventController,
+  removeUserFromEventController,
+  getUsersByEventController,
 } = require("../Controllers/EventoController");
+const { genericHandler } = require("../utils/Handler"); // Corrected double slash
+
+const addUserToEventHandler = genericHandler(addUserToEventController);
+const removeUserFromEventHandler = genericHandler((id) =>
+  removeUserFromEventController(id)
+);
+const getUsersByEventHandler = genericHandler((id) =>
+  getUsersByEventController(id)
+);
 
 // Common response handler
 const responseHandler = (fn) => async (req, res) => {
@@ -111,4 +123,7 @@ module.exports = {
   deleteEventoFisicoHandler,
   addSalonEventoHandler,
   deleteSalonEventoHandler,
+  addUserToEventHandler,
+  removeUserFromEventHandler,
+  getUsersByEventHandler,
 };

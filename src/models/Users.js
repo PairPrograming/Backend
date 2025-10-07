@@ -22,7 +22,11 @@ module.exports = (sequelize) => {
         unique: true,
         /*validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("DNI es obligatorio si no se usa Auth0");
             }
           },
@@ -30,32 +34,32 @@ module.exports = (sequelize) => {
       },
       nombre: {
         type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Nombre es obligatorio si no se usa Auth0");
-            }
+        allowNull: false, // Required for all users
+        /*validate: {
+          notEmpty: {
+            msg: "Nombre es obligatorio",
           },
-        },
+        },*/
       },
       apellido: {
         type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
-              throw new Error("Apellido es obligatorio si no se usa Auth0");
-            }
+        allowNull: false, // Required for all users
+        /*validate: {
+          notEmpty: {
+            msg: "Apellido es obligatorio",
           },
-        },
+        },*/
       },
       direccion: {
         type: DataTypes.STRING,
         allowNull: true,
         /*validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Dirección es obligatoria si no se usa Auth0");
             }
           },
@@ -63,7 +67,7 @@ module.exports = (sequelize) => {
       },
       email: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true,
         validate: {
           isEmail: {
@@ -76,7 +80,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         /*validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Whatsapp es obligatorio si no se usa Auth0");
             }
           },
@@ -86,20 +94,24 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        validate: {
+        /*validate: {
           conditionalRequired(value) {
-            if (!this.auth0Id && (!value || value.trim() === "")) {
+            if (
+              this.rol !== "graduado" &&
+              !this.auth0Id &&
+              (!value || value.trim() === "")
+            ) {
               throw new Error("Usuario es obligatorio si no se usa Auth0");
             }
           },
-        },
+        },*/
       },
       password: {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
           notNullIfNoAuth0(value) {
-            if (!this.auth0Id && !value) {
+            if (this.rol !== "graduado" && !this.auth0Id && !value) {
               throw new Error("Debe establecer una contraseña o usar Auth0");
             }
           },
@@ -108,11 +120,11 @@ module.exports = (sequelize) => {
       rol: {
         type: DataTypes.ENUM("admin", "vendor", "comun", "graduado"),
         allowNull: false,
-        defaultValue: "comun", // Por defecto será 'vendor'
+        defaultValue: "comun",
         validate: {
           isIn: {
             args: [["admin", "vendor", "comun", "graduado"]],
-            msg: "El rol debe ser 'admin' o 'vendor'",
+            msg: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
           },
         },
       },

@@ -4,6 +4,7 @@ const {
   obtenerUserGridController,
   updateUserController,
   verificarUsuarioController,
+  verificarUsuarioPorNombreController,
   deleteUserController,
   softDeleteUserController,
   obtenerUsuariosController,
@@ -22,6 +23,7 @@ const createUserHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
+    rol,
   } = req.body;
   try {
     const userData = {
@@ -34,8 +36,9 @@ const createUserHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
+      rol: rol || "comun",
     };
-    await createUserController(userData);
+    const result = await createUserController(userData);
     return res.status(201).json({ message: "Usuario Creado" });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -53,7 +56,7 @@ const crearUsuarioAdminHandler = async (req, res) => {
     whatsapp,
     usuario,
     password,
-    roleId,
+    rol,
   } = req.body;
 
   try {
@@ -67,12 +70,34 @@ const crearUsuarioAdminHandler = async (req, res) => {
       whatsapp,
       usuario,
       password,
-      roleId,
+      rol: rol || "comun",
     };
-    await createUserController(userData);
-    return res.status(201).json({ message: "Usuario creado por admin" });
+    const result = await createUserController(userData);
+    return res.status(201).json({
+      message: "Usuario creado por admin",
+      ...result, // incluye success, message, user con id
+    });
   } catch (error) {
     return res.status(400).json({ message: error.message });
+  }
+};
+
+const verificarUsuarioPorNombreHandler = async (req, res) => {
+  const { usuario } = req.body;
+
+  if (!usuario) {
+    return res.status(400).json({
+      message: "El nombre de usuario es requerido para la verificación",
+    });
+  }
+
+  try {
+    const result = await verificarUsuarioPorNombreController({ usuario });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message: `Error al verificar el nombre de usuario: ${error.message}`,
+    });
   }
 };
 
@@ -142,16 +167,16 @@ const updateUserHandler = async (req, res) => {
 };
 
 const verificarUsuarioHandler = async (req, res) => {
-  const { email, usuario, dni } = req.body;
+  const { email } = req.body;
 
-  if (!email && !usuario && !dni) {
-    return res
-      .status(400)
-      .json({ message: "Debe enviar email, usuario o dni para verificar" });
+  if (!email) {
+    return res.status(400).json({
+      message: "Email es requerido para verificación con Auth0",
+    });
   }
 
   try {
-    const user = await verificarUsuarioController({ email, usuario, dni });
+    const user = await verificarUsuarioController({ email });
 
     if (user) {
       const userData = {
@@ -162,7 +187,7 @@ const verificarUsuarioHandler = async (req, res) => {
         nombre: user.nombre,
         apellido: user.apellido,
         isActive: user.isActive,
-        rol: user.rol || (user.Rol ? user.Rol.rol : "comun"),
+        rol: user.rol || "comun",
       };
 
       return res.status(200).json({
@@ -173,9 +198,10 @@ const verificarUsuarioHandler = async (req, res) => {
       return res.status(200).json({ registrado: false });
     }
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: `Error al verificar el usuario: ${error.message}` });
+    console.error("Error en verificarUsuarioHandler:", error);
+    return res.status(500).json({
+      message: `Error al verificar el usuario: ${error.message}`,
+    });
   }
 };
 
@@ -241,11 +267,9 @@ const updateUserRoleHandler = async (req, res) => {
   const { rol } = req.body;
 
   if (!rol || !["admin", "vendor", "comun", "graduado"].includes(rol)) {
-    return res
-      .status(400)
-      .json({
-        message: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
-      });
+    return res.status(400).json({
+      message: "El rol debe ser 'admin', 'vendor', 'comun' o 'graduado'",
+    });
   }
 
   try {
@@ -263,6 +287,7 @@ module.exports = {
   obtenerUserGridHandler,
   updateUserHandler,
   verificarUsuarioHandler,
+  verificarUsuarioPorNombreHandler,
   deleteUserHandler,
   softDeleteUserHandler,
   obtenerUsuariosHandler,

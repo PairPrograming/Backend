@@ -1,4 +1,4 @@
-const { Salones, Eventos, SalonesEventos } = require("../DbIndex");
+const { Salones, Eventos, SalonesEventos, Users, UsuariosEventos } = require("../DbIndex");
 const { Op } = require("sequelize");
 
 // Common attributes for reuse
@@ -229,6 +229,111 @@ const deleteSalonEventoController = errorHandler(async (salonId, eventoId) => {
   };
 });
 
+/* Graduados */
+
+const addUserToEventController = async ({userId, eventoId}) => {
+  
+  try {
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      throw new Error(`Usuario no encontrado`);
+    }
+    if (!user.rol || user.rol.toLowerCase() !== "graduado") {
+      throw new Error(
+        `El usuario debe tener el rol de graduado para ser asignado al evento`
+      );
+    }
+    const punto = await Eventos.findByPk(eventoId);
+    if (!punto) {
+      throw new Error(`Evento no encontrado`);
+    }
+    const [existingUserPunto, created] = await UsuariosEventos.findOrCreate({
+      where: { userId, eventoId },
+      defaults: { userId, eventoId },
+    });
+    if (!created) {
+      throw new Error("El graduado ya está asociado a este evento");
+    }
+
+    return {
+      success: true,
+      message: "Graduado agregado al evento exitosamente",
+    };
+  } catch (error) {
+    throw new Error(`Error al agregar el graduado al evento: ${error.message}`);
+  }
+};
+
+const removeUserFromEventController = async (userId, eventoId) => {
+  try {
+    const user = await Users.findByPk(userId, {
+      include: [{ model: Rols, attributes: ["rol"] }],
+    });
+    if (!user) {
+      throw new Error(`Usuario no encontrado`);
+    }
+
+    const evento = await Eventos.findByPk(eventoId);
+    if (!evento) {
+      throw new Error(`Evento no encontrado`);
+    }
+
+    const existingRelation = await UsuariosEventos.findOne({
+      where: { userId, eventoId },
+    });
+
+    if (!existingRelation) {
+      throw new Error(`El usuario no está asociado a este evento`);
+    }
+
+    await existingRelation.destroy();
+
+    return {
+      success: true,
+      message: "Usuario eliminado del evento exitosamente",
+      data: { userId, eventoId },
+    };
+  } catch (error) {
+    throw new Error(
+      `Error al eliminar el usuario del evento: ${error.message}`
+    );
+  }
+};
+
+const getUsersByEventController = async (eventoId) => {
+  try {
+    const evento = await Eventos.findByPk(eventoId, {
+      include: [
+        {
+          model: Users,
+          attributes: ["id", "nombre", "apellido", "dni", "email", "rol"],
+          through: { attributes: [] } /*
+          include: [
+            {
+              model: Rols,
+              attributes: ["rol"],
+            },
+          ],*/,
+        },
+      ],
+    });
+
+    if (!evento) {
+      throw new Error(`Evento no encontrado`);
+    }
+
+    return {
+      success: true,
+      message: "Usuarios asociados al evento",
+      data: evento.Users,
+    };
+  } catch (error) {
+    throw new Error(
+      `Error al obtener los usuarios del evento: ${error.message}`
+    );
+  }
+};
+
 module.exports = {
   addEventoController,
   modEventoController,
@@ -238,4 +343,7 @@ module.exports = {
   deleteEventoFisicoController,
   addSalonEventoController,
   deleteSalonEventoController,
+  addUserToEventController,
+  removeUserFromEventController,
+  getUsersByEventController,
 };

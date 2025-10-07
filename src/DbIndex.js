@@ -11,7 +11,7 @@ const { DATABASE_URL } = process.env;
 //   logging: false,
 //   native: false,
 // });
-
+console.log("NODE_ENV:", process.env.NODE_ENV);
 const sequelize = new Sequelize(
   process.env.NODE_ENV === 'production' 
     ? process.env.DATABASE_URL 
@@ -71,6 +71,7 @@ const {
   Salones,
   Eventos,
   MetodoDePago,
+  NotaDebito,
   Punto_de_venta,
   Tickets,
   Image,
@@ -78,7 +79,8 @@ const {
   Pago,
   DetalleDeOrden,
   Entrada,
-  Contrato
+  Contrato,
+  SubtipoEntrada
 } = sequelize.models;
 
 /* ------------------- Relaciones --------------------- */
@@ -129,14 +131,40 @@ Punto_de_venta.belongsToMany(Metodo_de_pago, {
 // Invitados / Users
 Users.hasMany(Invitados, { foreignKey: "userId" });
 Invitados.belongsTo(Users, { foreignKey: "userId" });
+// Invitados / Eventos
+Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
+Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
 
 // Invitados / Eventos
 Eventos.hasMany(Invitados, { foreignKey: "eventoId" });
 Invitados.belongsTo(Eventos, { foreignKey: "eventoId" });
 
+//Users / Eventos
+Users.belongsToMany(Eventos, {
+  through: "UsuariosEventos",
+  foreignKey: "userId",
+  otherKey: "eventoId",
+});
+
+Eventos.belongsToMany(Users, {
+  through: "UsuariosEventos",
+  foreignKey: "eventoId",
+  otherKey: "userId",
+});
+
+NotaDebito.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
+MetodoDePago.hasMany(NotaDebito, { foreignKey: "metodoDeCobroId" });
+
+NotaDebito.belongsTo(Orden, { foreignKey: "ordenId" });
+Orden.hasMany(NotaDebito, { foreignKey: "ordenId" });
+
+NotaDebito.belongsTo(Pago, { foreignKey: "pagoId" });
+Pago.hasOne(NotaDebito, { foreignKey: "pagoId" });
+
 // Pago / Orden y Detalle / Metodo de pago / Entradas 
 Pago.belongsTo(MetodoDePago, { foreignKey: "metodoDeCobroId" });
 MetodoDePago.hasMany(Pago, { foreignKey: "metodoDeCobroId" });
+
 
 Orden.hasMany(Pago, { foreignKey: "ordenId" });
 Pago.belongsTo(Orden, { foreignKey: "ordenId" });
@@ -149,9 +177,12 @@ DetalleDeOrden.belongsTo(Orden, { foreignKey: "ordenId" });
 
 Eventos.hasMany(Entrada, { foreignKey: "eventoId" });
 Entrada.belongsTo(Eventos, { foreignKey: "eventoId" });
-
+Entrada.hasMany(SubtipoEntrada, { foreignKey: 'EntradaId', as: 'subtipos', onDelete: 'CASCADE'});
+SubtipoEntrada.belongsTo(Entrada, { foreignKey: 'EntradaId', as: 'entrada' });
 Entrada.hasMany(DetalleDeOrden, { foreignKey: "entradaId" });
 DetalleDeOrden.belongsTo(Entrada, { foreignKey: "entradaId" });
+SubtipoEntrada.hasMany(DetalleDeOrden, { foreignKey: "subtipoEntradaId" });
+DetalleDeOrden.belongsTo(SubtipoEntrada, { foreignKey: "subtipoEntradaId" });
 
 // Tickets / Orden / Eventos
 Eventos.hasMany(Tickets, { foreignKey: "eventoId" });

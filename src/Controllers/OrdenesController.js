@@ -3,10 +3,12 @@ const {
   MetodoDePago,
   Pago,
   DetalleDeOrden,
+  NotaDebito,
   Entrada,
   Eventos,
   Salones,
   Punto_de_venta,
+  SubtipoEntrada,
   Users,
   conn,
 } = require("../DbIndex");
@@ -29,8 +31,7 @@ const crearOrdenConDetalles = async (data) => {
   if (!userId && (!nombre_cliente || !email_cliente || !dni_cliente)) {
     return {
       success: false,
-      message:
-        "Se requiere un usuario registrado o datos de contacto (nombre y correo).",
+      message: "Se requiere un usuario registrado o datos de contacto (nombre y correo).",
     };
   }
 
@@ -54,19 +55,33 @@ const crearOrdenConDetalles = async (data) => {
     for (const detalle of detalles) {
       const totalDetalle = detalle.cantidad * detalle.precio_unitario;
       totalOrden += totalDetalle;
+      
+      const detalleData = {
+        cantidad: detalle.cantidad,
+        precio_unitario: detalle.precio_unitario,
+        total: totalDetalle,
+        ordenId: orden.id,
+        entradaId: detalle.entradaId,
+      };
+
+      if (detalle.subtipoEntradaId) {
+        detalleData.subtipoEntradaId = detalle.subtipoEntradaId;
+      }
+
+      const whereCondition = {
+        ordenId: orden.id,
+        entradaId: detalle.entradaId
+      };
+
+      if (detalle.subtipoEntradaId) {
+        whereCondition.subtipoEntradaId = detalle.subtipoEntradaId;
+      } else {
+        whereCondition.subtipoEntradaId = null;
+      }
 
       await DetalleDeOrden.findOrCreate({
-        where: {
-          ordenId: orden.id,
-          entradaId: detalle.entradaId,
-        },
-        defaults: {
-          cantidad: detalle.cantidad,
-          precio_unitario: detalle.precio_unitario,
-          total: totalDetalle,
-          ordenId: orden.id,
-          entradaId: detalle.entradaId,
-        },
+        where: whereCondition,
+        defaults: detalleData,
         transaction: t,
       });
     }
@@ -107,6 +122,9 @@ const getOrdenesController = async (id) => {
               attributes: ["nombre", "email"], // Ajusta según los campos que quieras
             },
           ],
+          include:[{
+              model:NotaDebito
+            }]
         },
       ],
     });
@@ -153,6 +171,20 @@ const getOrdenesController = async (id) => {
       user: orden.User
         ? { nombre: orden.User.nombre, email: orden.User.email }
         : null,
+      notasDebito: orden.NotaDebitos ? orden.NotaDebitos.map(nota => ({
+        id: nota.id,
+        numeroNota: nota.numeroNota,
+        tipoNota: nota.tipoNota,
+        concepto: nota.concepto,
+        valorNeto: nota.ValorNeto,
+        cuotas: nota.cuotas,
+        valorImpuesto: nota.valorImpuesto,
+        comision: nota.comision,
+        valorTotal: nota.valorTotal,
+        fechaEmision: nota.fechaEmision,
+        detalle: nota.detalle,
+        status: nota.status
+      })) : [],
       detalles: detallesCompactados,
       salon,
     };
@@ -171,6 +203,7 @@ const getGridOrdenesController = async (filtros = {}) => {
       userId,
       evento,
       salon,
+      cuotas,
       metodoDePago,
       limit = 50,
       offset = 0,
@@ -243,20 +276,58 @@ const getGridOrdenesController = async (filtros = {}) => {
         include: [
           {
             model: MetodoDePago,
-            where: metodoDePago ? {
-              [Op.or]: [
-                { id: metodoDePago },
-                { 
-                  nombre: {
-                    [Op.iLike]: `%${metodoDePago}%`
-                  }
-                }
+            where: {
+              [Op.and]: [
+                ...(metodoDePago ? [{ // Siempre crea el array, aunque esté vacío
+                  [Op.or]: [
+                    //{ Id: metodoDePago },
+                    { tipo_de_cobro: { [Op.iLike]: `%${metodoDePago}%` } }
+                  ]
+                }] : [])
               ]
-            } : undefined
-          },
+            },
+            required: !!metodoDePago
+          }
         ],
-        required: !!metodoDePago
+        where: {
+          ...(cuotas && (() => {
+            if (cuotas === '1' || cuotas === 1) {
+              return {
+                cuotas: {
+                  [Op.or]: [
+                    { [Op.is]: null },
+                    { [Op.eq]: 1 }
+                  ]
+                }
+              };
+            } else {
+              return {
+                cuotas: parseInt(cuotas)
+              };
+            }
+          })())
+        },
+        required: !!(cuotas || metodoDePago)
       },
+      // ✅ AGREGADO: Incluir NotaDebito
+      {
+        model: NotaDebito,
+        required: false, // LEFT JOIN para que traiga órdenes sin notas también
+        attributes: [
+          'id',
+          'numeroNota', 
+          'tipoNota',
+          'concepto',
+          'ValorNeto',
+          'cuotas',
+          'valorImpuesto',
+          'comision',
+          'valorTotal',
+          'fechaEmision',
+          'detalle',
+          'status'
+        ]
+      }
     ];
 
     const allowedFields = [
