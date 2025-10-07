@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       cantidad_total: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        defaultValue: 0,
       },
       cantidad_real: {
         type: DataTypes.INTEGER,
